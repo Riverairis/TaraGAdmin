@@ -1,4 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, StrictMode, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+
+function RootApp() {
+  useEffect(() => {
+    const theme = localStorage.getItem('theme') || 'light';
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  return <App />;
+}
 
 const GlobalSettings = () => {
   const [settings, setSettings] = useState({
@@ -195,4 +209,23 @@ const GlobalSettings = () => {
   );
 };
 
-export default GlobalSettings;
+export default {
+  darkMode: 'class',
+  content: ['./src/**/*.{jsx,js}', './index.html'],
+  theme: {
+    extend: {
+      colors: {
+        cyan: {
+          DEFAULT: '#0065F8',
+        }
+      }
+    },
+  },
+  plugins: [],
+};
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <RootApp />
+  </StrictMode>,
+)

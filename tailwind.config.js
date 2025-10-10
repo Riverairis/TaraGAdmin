@@ -1,7 +1,13 @@
 export default {
-  content: ['./src/**/*.{jsx,js}', './index.html'],
+  darkMode: 'class',
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+  ],
   theme: {
     extend: {
+      fontFamily: {
+        'sans': ['Poppins', 'sans-serif'],
+      },
       colors: {
         cyan: {
           DEFAULT: '#0065F8',

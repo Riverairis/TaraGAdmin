@@ -2,398 +2,435 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const EmergencyMonitoring = () => {
-  const [activeAlerts, setActiveAlerts] = useState([]);
-  const [alertHistory, setAlertHistory] = useState([]);
+  const [safetyLogs, setSafetyLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedAlert, setSelectedAlert] = useState(null);
+  const [error, setError] = useState(null);
+  
+  const [filters, setFilters] = useState({
+    emergencyType: '',
+    startDate: '',
+    endDate: '',
+    isResolved: '',
+    isPending: '',
+    search: ''
+  });
+  
+  const [selectedLog, setSelectedLog] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    fetchAlerts();
-  }, []);
-
-  const fetchAlerts = async () => {
+  const fetchSafetyLogs = async () => {
     try {
-      // Example data - replace with actual API calls
-      const exampleActiveAlerts = [
-        {
-          id: 1,
-          userName: "Maria Santos",
-          location: "Mount Pulag, Benguet",
-          timestamp: "2024-01-15T08:30:00Z",
-          severity: "High",
-          type: "Medical Emergency",
-          description: "User reported difficulty breathing at high altitude",
-          contact: "+63 912 345 6789"
-        },
-        {
-          id: 2,
-          userName: "Juan Dela Cruz",
-          location: "Taal Volcano, Batangas",
-          timestamp: "2024-01-15T09:15:00Z",
-          severity: "Medium",
-          type: "Lost Tourist",
-          description: "User separated from group during hike",
-          contact: "+63 917 123 4567"
-        }
-      ];
-
-      const exampleAlertHistory = [
-        {
-          id: 3,
-          userName: "Anna Reyes",
-          location: "Chocolate Hills, Bohol",
-          timestamp: "2024-01-14T14:20:00Z",
-          type: "Injury",
-          status: "resolved",
-          description: "Sprained ankle during hike",
-          resolvedBy: "Admin Rodriguez",
-          resolutionNotes: "Arranged transport to local clinic"
-        },
-        {
-          id: 4,
-          userName: "Carlos Garcia",
-          location: "Mayon Volcano, Albay",
-          timestamp: "2024-01-13T11:45:00Z",
-          type: "Weather Emergency",
-          status: "resolved",
-          description: "Sudden heavy rainfall and lightning",
-          resolvedBy: "Admin Lee",
-          resolutionNotes: "Evacuated group to safe location"
-        },
-        {
-          id: 5,
-          userName: "Liza Mendoza",
-          location: "Puerto Princesa Underground River",
-          timestamp: "2024-01-12T16:30:00Z",
-          type: "Equipment Failure",
-          status: "pending",
-          description: "Boat engine malfunction during tour",
-          resolvedBy: "",
-          resolutionNotes: ""
-        }
-      ];
-
-      setActiveAlerts(exampleActiveAlerts);
-      setAlertHistory(exampleAlertHistory);
+      setLoading(true);
+      setError(null);
       
-      // Actual API calls (commented out for example)
-      /*
-      const [activeResponse, historyResponse] = await Promise.all([
-        axios.get('http://localhost:8080/api/alerts/active'),
-        axios.get('http://localhost:8080/api/alerts/history')
-      ]);
-      
-      setActiveAlerts(activeResponse.data);
-      setAlertHistory(historyResponse.data);
-      */
-    } catch (error) {
-      console.error('Error fetching alerts:', error);
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('No access token found');
+      }
+
+      const queryParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value.trim() !== '') {
+          queryParams.append(key, value);
+        }
+      });
+
+      const response = await axios.get(
+        `http://localhost:5000/api/safety/get-filtered-logs?${queryParams.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      setSafetyLogs(response.data);
+    } catch (err) {
+      console.error('Error fetching safety logs:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to fetch safety logs');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNotifyServices = (alertId) => {
-    console.log(`Notifying services for alert ${alertId}`);
-    // In a real application, this would trigger notifications to emergency services
-    alert(`Emergency services notified for alert ${alertId}`);
-    
-    // Update UI to show notification was sent
-    setActiveAlerts(alerts => 
-      alerts.map(alert => 
-        alert.id === alertId 
-          ? {...alert, servicesNotified: true, notifiedAt: new Date().toISOString()} 
-          : alert
-      )
-    );
-  };
-
-  const handleResolveAlert = (alertId) => {
-    console.log(`Resolving alert ${alertId}`);
-    // In a real application, this would update the alert status in the database
-    const resolvedAlert = activeAlerts.find(alert => alert.id === alertId);
-    if (resolvedAlert) {
-      setAlertHistory(prev => [
-        {...resolvedAlert, status: "resolved", resolvedAt: new Date().toISOString()},
-        ...prev
-      ]);
-      setActiveAlerts(activeAlerts.filter(alert => alert.id !== alertId));
+  const deleteSafetyLog = async (logId) => {
+    if (!window.confirm('Are you sure you want to delete this safety log?')) {
+      return;
     }
-    alert(`Alert ${alertId} marked as resolved`);
-  };
 
-  const handleViewDetails = (alert) => {
-    setSelectedAlert(alert);
-    setShowModal(true);
-  };
-
-  const SeverityBadge = ({ severity }) => {
-    let bgColor, textColor;
-    switch(severity) {
-      case "High":
-        bgColor = "bg-red-100";
-        textColor = "text-red-800";
-        break;
-      case "Medium":
-        bgColor = "bg-yellow-100";
-        textColor = "text-yellow-800";
-        break;
-      case "Low":
-        bgColor = "bg-blue-100";
-        textColor = "text-blue-800";
-        break;
-      default:
-        bgColor = "bg-gray-100";
-        textColor = "text-gray-800";
+    try {
+      const token = localStorage.getItem('accessToken');
+      await axios.delete(
+        'http://localhost:5000/api/safety/delete-log',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          data: { logID: logId }
+        }
+      );
+      
+      await fetchSafetyLogs();
+    } catch (err) {
+      console.error('Error deleting safety log:', err);
+      setError(err.response?.data?.message || 'Failed to delete safety log');
     }
-    
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleString();
+  };
+
+  const getStatusBadge = (log) => {
+    const isResolved = log.endedOn !== null && log.endedOn !== undefined;
     return (
-      <span className={`${bgColor} ${textColor} text-xs font-medium px-2.5 py-0.5 rounded-full`}>
-        {severity}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+        isResolved 
+          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+      }`}>
+        {isResolved ? 'Resolved' : 'Active'}
       </span>
     );
   };
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading alerts...</div>;
-  }
+  const getEmergencyTypeBadge = (type) => {
+    const colors = {
+      'medical': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      'accident': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+      'security': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+      'weather': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      'other': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+    };
+    
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+        colors[type.toLowerCase()] || colors.other
+      }`}>
+        {type}
+      </span>
+    );
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      emergencyType: '',
+      startDate: '',
+      endDate: '',
+      isResolved: '',
+      isPending: '',
+      search: ''
+    });
+  };
+
+  useEffect(() => {
+    fetchSafetyLogs();
+  }, [filters]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-      <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-cyan-50 to-white">
-        <h1 className="text-xl font-bold text-gray-900">Emergency Monitoring System</h1>
-        <p className="text-sm text-gray-500">Monitor and respond to emergency alerts from users in real-time</p>
-      </div>
+    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Emergency Monitoring</h1>
+          <p className="text-gray-600 dark:text-gray-400">Monitor and manage safety logs and emergency situations</p>
+        </div>
 
-      
+        {/* Controls */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Search */}
+            <div className="flex-1 min-w-64">
+              <input
+                type="text"
+                placeholder="Search safety logs..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
 
-      <div className="p-6">
-        {/* Active Alerts Section */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Active Emergency Alerts</h2>
-            <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-              {activeAlerts.length} Active
-            </span>
+            {/* Filter Toggle */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-gray-300"
+            >
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </button>
+
+            {/* Refresh */}
+            <button
+              onClick={fetchSafetyLogs}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-md text-sm font-medium transition-colors"
+            >
+              {loading ? 'Loading...' : 'Refresh'}
+            </button>
           </div>
-          
-          {activeAlerts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeAlerts.map(alert => (
-                <div key={alert.id} className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-medium text-red-800">Emergency Alert #{alert.id}</h3>
-                    <SeverityBadge severity={alert.severity} />
-                  </div>
-                  
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-red-600 font-medium">User: </span>
-                      {alert.userName}
-                    </div>
-                    <div>
-                      <span className="text-red-600 font-medium">Type: </span>
-                      {alert.type}
-                    </div>
-                    <div>
-                      <span className="text-red-600 font-medium">Location: </span>
-                      {alert.location}
-                    </div>
-                    <div>
-                      <span className="text-red-600 font-medium">Time: </span>
-                      {new Date(alert.timestamp).toLocaleString()}
-                    </div>
-                    {alert.servicesNotified && (
-                      <div className="text-green-600">
-                        <span className="font-medium">Services Notified: </span>
-                        {new Date(alert.notifiedAt).toLocaleTimeString()}
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="mt-4 flex space-x-2">
-                    <button 
-                      className="bg-red-600 text-white px-3 py-1 rounded-md text-sm hover:bg-red-700 flex items-center"
-                      onClick={() => handleNotifyServices(alert.id)}
-                      disabled={alert.servicesNotified}
-                    >
-                      <span className="fas fa-bell mr-1"></span>
-                      {alert.servicesNotified ? "Notified" : "Notify Services"}
-                    </button>
-                    <button 
-                      className="bg-white text-red-600 border border-red-300 px-3 py-1 rounded-md text-sm hover:bg-red-50 flex items-center"
-                      onClick={() => handleResolveAlert(alert.id)}
-                    >
-                      <span className="fas fa-check-circle mr-1"></span>
-                      Mark Resolved
-                    </button>
-                    <button 
-                      className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md text-sm hover:bg-gray-200 flex items-center"
-                      onClick={() => handleViewDetails(alert)}
-                    >
-                      <span className="fas fa-info-circle mr-1"></span>
-                      Details
-                    </button>
-                  </div>
+          {/* Advanced Filters */}
+          {showFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Emergency Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Emergency Type
+                  </label>
+                  <select
+                    value={filters.emergencyType}
+                    onChange={(e) => handleFilterChange('emergencyType', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">All Types</option>
+                    <option value="medical">Medical</option>
+                    <option value="accident">Accident</option>
+                    <option value="security">Security</option>
+                    <option value="weather">Weather</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-              <span className="fas fa-check-circle text-green-500 text-4xl mb-3"></span>
-              <p className="text-green-800 font-medium">No active emergency alerts</p>
-              <p className="text-green-600 text-sm mt-1">All users are safe</p>
-            </div>
-          )}
-        </div>
 
-        {/* Alert History Section */}
-        <div>
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Alert History</h2>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {alertHistory.map(alert => (
-                  <tr key={alert.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{alert.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{alert.userName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{alert.type}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{alert.location}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {new Date(alert.timestamp).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        alert.status === 'resolved' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {alert.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button 
-                        className="text-blue-600 hover:text-blue-900 mr-3"
-                        onClick={() => handleViewDetails(alert)}
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                {/* Start Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.startDate}
+                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
 
-          {alertHistory.length === 0 && (
-            <div className="text-center py-8 bg-gray-50 rounded-lg mt-4">
-              <span className="fas fa-history text-gray-400 text-3xl mb-3"></span>
-              <p className="text-gray-500">No alert history found</p>
-            </div>
-          )}
-        </div>
-      </div>
+                {/* End Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.endDate}
+                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
 
-      {/* Alert Detail Modal */}
-      {showModal && selectedAlert && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">Alert Details #{selectedAlert.id}</h3>
-                <button 
-                  className="text-gray-400 hover:text-gray-500"
-                  onClick={() => setShowModal(false)}
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={filters.isResolved}
+                    onChange={(e) => handleFilterChange('isResolved', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">All Status</option>
+                    <option value="true">Resolved</option>
+                    <option value="false">Active</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Clear Filters */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                 >
-                  <span className="fas fa-times"></span>
+                  Clear All Filters
                 </button>
               </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">User Name</p>
-                  <p className="mt-1">{selectedAlert.userName}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Emergency Type</p>
-                  <p className="mt-1">{selectedAlert.type}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Location</p>
-                  <p className="mt-1">{selectedAlert.location}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Severity</p>
-                  <p className="mt-1"><SeverityBadge severity={selectedAlert.severity} /></p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Timestamp</p>
-                  <p className="mt-1">{new Date(selectedAlert.timestamp).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Status</p>
-                  <p className="mt-1">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      selectedAlert.status === 'resolved' 
-                        ? 'bg-green-100 text-green-800' 
-                        : selectedAlert.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {selectedAlert.status || 'active'}
-                    </span>
-                  </p>
-                </div>
+          )}
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 mb-6">
+            <div className="flex">
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error</h3>
+                <div className="mt-2 text-sm text-red-700 dark:text-red-300">{error}</div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Description</p>
-                <p className="mt-1 bg-gray-50 p-3 rounded-md">{selectedAlert.description || "No additional details provided"}</p>
-              </div>
-              {selectedAlert.contact && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Contact Information</p>
-                  <p className="mt-1">{selectedAlert.contact}</p>
-                </div>
-              )}
-              {selectedAlert.resolvedBy && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Resolved By</p>
-                  <p className="mt-1">{selectedAlert.resolvedBy}</p>
-                </div>
-              )}
-              {selectedAlert.resolutionNotes && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Resolution Notes</p>
-                  <p className="mt-1 bg-green-50 p-3 rounded-md">{selectedAlert.resolutionNotes}</p>
-                </div>
-              )}
-            </div>
-            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-end">
-              <button
-                type="button"
-                className="bg-cyan-600 text-white px-4 py-2 rounded-md text-sm hover:bg-cyan-700"
-                onClick={() => setShowModal(false)}
-              >
-                Close
-              </button>
             </div>
           </div>
+        )}
+
+        {/* Safety Logs Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Loading safety logs...</p>
+            </div>
+          ) : safetyLogs.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-600 dark:text-gray-400">No safety logs found</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Emergency Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Started
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {safetyLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {log.userData?.fname} {log.userData?.lname}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {log.userData?.email}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getEmergencyTypeBadge(log.emergencyType)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {log.userLocation?.locationName || 'Unknown'}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {log.userLocation?.latitude}, {log.userLocation?.longitude}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {formatDate(log.startedOn)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(log)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setSelectedLog(log);
+                              setShowModal(true);
+                            }}
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => deleteSafetyLog(log.id)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Detail Modal */}
+        {showModal && selectedLog && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+              <div className="mt-3">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                    Safety Log Details
+                  </h3>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <span className="sr-only">Close</span>
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {/* User Information */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">User Information</h4>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+                      <p className="text-gray-900 dark:text-white"><strong>Name:</strong> {selectedLog.userData?.fname} {selectedLog.userData?.mname} {selectedLog.userData?.lname}</p>
+                      <p className="text-gray-900 dark:text-white"><strong>Username:</strong> {selectedLog.userData?.username}</p>
+                      <p className="text-gray-900 dark:text-white"><strong>Email:</strong> {selectedLog.userData?.email}</p>
+                      <p className="text-gray-900 dark:text-white"><strong>Contact:</strong> {selectedLog.userData?.contactNumber}</p>
+                      <p className="text-gray-900 dark:text-white"><strong>Type:</strong> {selectedLog.userData?.type}</p>
+                    </div>
+                  </div>
+
+                  {/* Emergency Details */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">Emergency Details</h4>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+                      <p className="text-gray-900 dark:text-white"><strong>Type:</strong> {selectedLog.emergencyType}</p>
+                      <p className="text-gray-900 dark:text-white"><strong>Message:</strong> {selectedLog.message || 'No message provided'}</p>
+                      <p className="text-gray-900 dark:text-white"><strong>Started:</strong> {formatDate(selectedLog.startedOn)}</p>
+                      <p className="text-gray-900 dark:text-white"><strong>Ended:</strong> {selectedLog.endedOn ? formatDate(selectedLog.endedOn) : 'Still active'}</p>
+                    </div>
+                  </div>
+
+                  {/* Location Information */}
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">Location Information</h4>
+                    <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+                      <p className="text-gray-900 dark:text-white"><strong>Location Name:</strong> {selectedLog.userLocation?.locationName}</p>
+                      <p className="text-gray-900 dark:text-white"><strong>Coordinates:</strong> {selectedLog.userLocation?.latitude}, {selectedLog.userLocation?.longitude}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

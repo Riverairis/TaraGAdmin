@@ -45,6 +45,11 @@ function App() {
     setIsAuthenticated(false);
   };
 
+  const toggleTheme = () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -55,36 +60,39 @@ function App() {
 
   return (
     <Router>
-      <Routes>
-        <Route 
-          path="/login" 
-          element={
-            !isAuthenticated ? 
-            <Login onLoginSuccess={handleLoginSuccess} /> : 
-            <Navigate to="/admin-dashboard" />} 
-        />
-        <Route 
-          path="/admin-dashboard" 
-          element={
-            isAuthenticated ? 
-            <AdminDashboard onLogout={handleLogout} /> : 
-            <Navigate to="/login" />} 
-        />
-        <Route 
-          path="/profile" 
-          element={
-            isAuthenticated ? 
-            <Profile onLogout={handleLogout} /> : 
-            <Navigate to="/login" />} 
-        />
-        <Route 
-          path="/" 
-          element={
-            isAuthenticated ? 
-            <Navigate to="/admin-dashboard" /> : 
-            <Navigate to="/login" />} 
-        />
-      </Routes>
+      <div>
+        
+        <Routes>
+          <Route 
+            path="/login" 
+            element={
+              !isAuthenticated ? 
+              <Login onLoginSuccess={handleLoginSuccess} /> : 
+              <Navigate to="/admin-dashboard" />} 
+          />
+          <Route 
+            path="/admin-dashboard" 
+            element={
+              isAuthenticated ? 
+              <AdminDashboard onLogout={handleLogout} /> : 
+              <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              isAuthenticated ? 
+              <Profile onLogout={handleLogout} /> : 
+              <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/" 
+            element={
+              isAuthenticated ? 
+              <Navigate to="/admin-dashboard" /> : 
+              <Navigate to="/login" />} 
+          />
+        </Routes>
+      </div>
     </Router>
   );
 }
