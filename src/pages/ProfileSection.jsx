@@ -93,9 +93,9 @@ const ProfileSection = ({ adminName, onLogout }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 md:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-sm p-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8">
             <div className="animate-pulse">
               <div className="h-10 bg-gray-200 rounded w-1/4 mb-8"></div>
               <div className="flex space-x-6 mb-8">
@@ -120,21 +120,21 @@ const ProfileSection = ({ adminName, onLogout }) => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6 md:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-red-50 border border-red-100 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white rounded-2xl shadow-lg p-8">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
               </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-medium text-red-800">Error Loading Profile</h3>
-                <p className="text-red-700 mt-2">{error}</p>
+              <div className="ml-4">
+                <h3 className="text-xl font-semibold text-gray-900">Error Loading Profile</h3>
+                <p className="text-gray-600 mt-2">{error}</p>
                 <button
                   onClick={fetchAdminProfile}
-                  className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                  className="mt-4 px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-xl text-sm font-medium hover:from-cyan-700 hover:to-cyan-800 transition-all shadow-md hover:shadow-lg"
                 >
                   Try Again
                 </button>
@@ -147,29 +147,42 @@ const ProfileSection = ({ adminName, onLogout }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header Section - Removed the gradient header */}
-        
+
         {/* Main Profile Card */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
-          {/* Profile Content */}
-          <div className="p-8">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+          {/* Profile Header with subtle gradient */}
+          <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div className="flex items-center">
-                <div className="w-24 h-24 bg-cyan-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-6">
-                  {adminData?.fname?.charAt(0) || 'A'}
+                <div className="relative">
+                  <div className="w-28 h-28 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mr-6 shadow-lg">
+                    {adminData?.fname?.charAt(0) || 'A'}
+                  </div>
+                  <div className="absolute bottom-2 right-4 w-6 h-6 bg-emerald-500 rounded-full border-4 border-white flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
                 </div>
+                
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
                     {adminData?.fname} {adminData?.mname && `${adminData.mname} `}{adminData?.lname}
                   </h2>
-                  <p className="text-gray-600 mt-1">{adminData?.email}</p>
-                  <div className="flex items-center mt-2">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-cyan-100 text-cyan-800 capitalize">
+                  <p className="text-gray-600 mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                    {adminData?.email}
+                  </p>
+                  <div className="flex items-center mt-3">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-cyan-100 to-cyan-200 text-cyan-800 capitalize shadow-sm">
                       {adminData?.type}
                     </span>
-                    <span className="ml-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800 capitalize">
+                    <span className="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800 capitalize shadow-sm">
                       {adminData?.status}
                     </span>
                   </div>
@@ -181,24 +194,32 @@ const ProfileSection = ({ adminName, onLogout }) => {
                   <>
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                      className="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-all shadow-sm hover:shadow-md flex items-center"
                     >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
                       Edit Profile
                     </button>
-                    
                   </>
                 ) : (
                   <>
                     <button
                       onClick={handleSaveChanges}
-                      className="px-4 py-2 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 transition-colors"
+                      className="px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-xl font-medium hover:from-cyan-700 hover:to-cyan-800 transition-all shadow-md hover:shadow-lg flex items-center"
                     >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
                       Save Changes
                     </button>
                     <button
                       onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                      className="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-all shadow-sm hover:shadow-md flex items-center"
                     >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                       Cancel
                     </button>
                   </>
@@ -208,16 +229,15 @@ const ProfileSection = ({ adminName, onLogout }) => {
           </div>
 
           {/* Tab Navigation */}
-          <div className="border-t border-gray-200">
+          <div className="border-t border-gray-200 bg-white">
             <nav className="flex space-x-8 px-8">
-              {['overview', 'security'].map((tab) => (
+              {['overview', 'security', 'preferences'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`py-4 px-1 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === tab
-                      ? 'border-cyan-500 text-cyan-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  className={`py-5 px-1 text-sm font-medium border-b-2 transition-all ${activeTab === tab
+                    ? 'border-cyan-500 text-cyan-600 font-semibold'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -232,82 +252,57 @@ const ProfileSection = ({ adminName, onLogout }) => {
           {/* Main Content Column */}
           <div className="lg:col-span-2">
             {activeTab === 'overview' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Personal Information</h3>
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                  Personal Information
+                </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="fname"
-                        value={editForm.fname}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                      />
-                    ) : (
-                      <p className="text-gray-900">{adminData?.fname}</p>
-                    )}
-                  </div>
+                  {[
+                    { label: 'First Name', name: 'fname', value: adminData?.fname },
+                    { label: 'Middle Name', name: 'mname', value: adminData?.mname },
+                    { label: 'Last Name', name: 'lname', value: adminData?.lname },
+                    { label: 'Username', name: 'username', value: adminData?.username },
+                    { label: 'Email', name: 'email', value: adminData?.email, disabled: true },
+                    { label: 'Contact Number', name: 'contactNumber', value: adminData?.contactNumber || 'Not provided' },
+                  ].map((field) => (
+                    <div key={field.name} className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">{field.label}</label>
+                      {isEditing && !field.disabled ? (
+                        <input
+                          type="text"
+                          name={field.name}
+                          value={editForm[field.name]}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors"
+                          placeholder={`Enter your ${field.label.toLowerCase()}`}
+                        />
+                      ) : (
+                        <p className={`px-4 py-3 bg-gray-50 rounded-xl ${field.value ? 'text-gray-900' : 'text-gray-500'}`}>
+                          {field.value || 'Not provided'}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="lname"
-                        value={editForm.lname}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                      />
-                    ) : (
-                      <p className="text-gray-900">{adminData?.lname}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="username"
-                        value={editForm.username}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                      />
-                    ) : (
-                      <p className="text-gray-900">{adminData?.username}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Contact Number</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        name="contactNumber"
-                        value={editForm.contactNumber}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-                      />
-                    ) : (
-                      <p className="text-gray-900">{adminData?.contactNumber || 'Not provided'}</p>
-                    )}
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Bio</label>
                     {isEditing ? (
                       <textarea
                         name="bio"
                         value={editForm.bio}
                         onChange={handleInputChange}
                         rows="3"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors"
+                        placeholder="Tell us about yourself..."
                       />
                     ) : (
-                      <p className="text-gray-700">{adminData?.bio || 'No bio provided'}</p>
+                      <p className="px-4 py-3 bg-gray-50 rounded-xl text-gray-700 min-h-[60px]">
+                        {adminData?.bio || 'No bio provided'}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -315,37 +310,102 @@ const ProfileSection = ({ adminName, onLogout }) => {
             )}
             
             {activeTab === 'security' && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Security Settings</h3>
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                  Security Settings
+                </h3>
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
-                      <p className="text-sm text-gray-600 mt-1">Add an extra layer of security to your account</p>
+                  {[
+                    
+                    {
+                      title: 'Login History',
+                      description: 'View your recent account activity',
+                      buttonText: 'View History',
+                      icon: (
+                        <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      )
+                    },
+                    {
+                      title: 'Change Password',
+                      description: 'Update your password regularly to keep your account secure',
+                      buttonText: 'Change Password',
+                      buttonStyle: 'bg-gradient-to-r from-cyan-600 to-cyan-700 text-white hover:from-cyan-700 hover:to-cyan-800',
+                      icon: (
+                        <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                      )
+                    }
+                  ].map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-5 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0 p-2 bg-white rounded-lg shadow-sm mr-4">
+                          {item.icon}
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{item.title}</h4>
+                          <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                        </div>
+                      </div>
+                      <button className={`px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md ${item.buttonStyle || 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}>
+                        {item.buttonText}
+                      </button>
                     </div>
-                    <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                      Enable
-                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'preferences' && (
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                  </svg>
+                  Preferences
+                </h3>
+                <div className="space-y-6">
+                  <div className="p-5 bg-gray-50 rounded-xl border border-gray-100">
+                    <h4 className="font-medium text-gray-900 mb-3">Notification Preferences</h4>
+                    <div className="space-y-3">
+                      {['Email Notifications', 'Push Notifications', 'SMS Alerts', 'Security Alerts'].map((pref) => (
+                        <div key={pref} className="flex items-center justify-between">
+                          <span className="text-gray-700">{pref}</span>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" defaultChecked />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">Login History</h4>
-                      <p className="text-sm text-gray-600 mt-1">View your recent account activity</p>
+
+                  <div className="p-5 bg-gray-50 rounded-xl border border-gray-100">
+                    <h4 className="font-medium text-gray-900 mb-3">Language & Region</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                        <select className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                          <option>English</option>
+                          <option>Spanish</option>
+                          <option>French</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Time Zone</label>
+                        <select className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                          <option>UTC-05:00 Eastern Time</option>
+                          <option>UTC-06:00 Central Time</option>
+                          <option>UTC-07:00 Mountain Time</option>
+                          <option>UTC-08:00 Pacific Time</option>
+                        </select>
+                      </div>
                     </div>
-                    <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                      View History
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">Change Password</h4>
-                      <p className="text-sm text-gray-600 mt-1">Update your password regularly to keep your account secure</p>
-                    </div>
-                    <button className="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700">
-                      Change Password
-                    </button>
                   </div>
                 </div>
               </div>
@@ -355,13 +415,20 @@ const ProfileSection = ({ adminName, onLogout }) => {
           {/* Sidebar Column */}
           <div className="space-y-8">
             {/* Account Info Card */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h3>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                  <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                </svg>
+                Account Information
+              </h3>
               <div className="space-y-4">
+              
                
-                <div>
-                  <p className="text-sm text-gray-500">Member Since</p>
-                  <p className="text-sm text-gray-900">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Member Since</p>
+                  <p className="text-sm font-medium text-gray-900">
                     {adminData?.createdOn ? new Date(adminData.createdOn).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
@@ -369,21 +436,26 @@ const ProfileSection = ({ adminName, onLogout }) => {
                     }) : 'N/A'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Last Login</p>
-                  <p className="text-sm text-gray-900">Today at 10:30 AM</p>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500">Last Login</p>
+                  <p className="text-sm font-medium text-gray-900">Today at 10:30 AM</p>
                 </div>
               </div>
             </div>
             
             {/* System Status Card */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                System Status
+              </h3>
               <div className="space-y-4">
-                <div className="flex items-center">
+                <div className="flex items-center p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                   <div className="flex-shrink-0 h-3 w-3 bg-emerald-500 rounded-full"></div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">All Systems Operational</p>
+                    <p className="text-sm font-medium text-emerald-800">All Systems Operational</p>
                   </div>
                 </div>
                 <div className="pt-4 border-t border-gray-200">

@@ -15,16 +15,25 @@ const RevenueManagement = () => {
    
   // New states for transactions and subscriptions
   const [transactions, setTransactions] = useState([]);
-  const [subscriptionPlans, setSubscriptionPlans] = useState([]);
+  const [userSubscriptions, setUserSubscriptions] = useState([]);
+  const [agencySubscriptions, setAgencySubscriptions] = useState([]);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showUserSubscriptionModal, setShowUserSubscriptionModal] = useState(false);
+  const [showAgencySubscriptionModal, setShowAgencySubscriptionModal] = useState(false);
   const [newTransaction, setNewTransaction] = useState({
     agencyName: '',
     amount: '',
     paymentMethod: 'PayMongo',
     status: 'pending'
   });
-  const [newSubscription, setNewSubscription] = useState({
+  const [newUserSubscription, setNewUserSubscription] = useState({
+    name: '',
+    price: '',
+    duration: 'monthly',
+    features: '',
+    status: 'active'
+  });
+  const [newAgencySubscription, setNewAgencySubscription] = useState({
     name: '',
     price: '',
     duration: 'monthly',
@@ -44,7 +53,8 @@ const RevenueManagement = () => {
         fetchAdRevenue(),
         fetchPaymentTransactions(),
         fetchTransactions(),
-        fetchSubscriptionPlans()
+        fetchUserSubscriptions(),
+        fetchAgencySubscriptions()
       ]);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -104,113 +114,103 @@ const RevenueManagement = () => {
     setTransactions(exampleTransactions);
   };
 
-  const fetchSubscriptionPlans = async () => {
-    // Sample subscription plans
+  const fetchUserSubscriptions = async () => {
+    // Sample user subscription plans
     const examplePlans = [
       {
         id: 1,
-        name: "Basic Plan",
+        name: "Traveler Basic",
+        price: 299.00,
+        duration: "monthly",
+        features: "Basic travel features, 3 saved itineraries, standard support",
+        status: "active",
+        subscribers: 45,
+        type: "user"
+      },
+      {
+        id: 2,
+        name: "Traveler Pro",
+        price: 599.00,
+        duration: "monthly",
+        features: "Advanced features, unlimited itineraries, priority support, offline maps",
+        status: "active",
+        subscribers: 22,
+        type: "user"
+      },
+      {
+        id: 3,
+        name: "Traveler Premium",
         price: 999.00,
+        duration: "monthly",
+        features: "All features, personalized recommendations, 24/7 support, travel insurance",
+        status: "active",
+        subscribers: 12,
+        type: "user"
+      },
+      {
+        id: 4,
+        name: "Annual Traveler",
+        price: 5999.00,
+        duration: "yearly",
+        features: "Pro plan with 2 months free",
+        status: "inactive",
+        subscribers: 8,
+        type: "user"
+      }
+    ];
+    setUserSubscriptions(examplePlans);
+  };
+
+  const fetchAgencySubscriptions = async () => {
+    // Sample agency subscription plans
+    const examplePlans = [
+      {
+        id: 1,
+        name: "Agency Starter",
+        price: 1999.00,
         duration: "monthly",
         features: "Basic listing, 5 featured tours, email support",
         status: "active",
-        subscribers: 15
+        subscribers: 15,
+        type: "agency"
       },
       {
         id: 2,
-        name: "Professional Plan",
-        price: 2499.00,
+        name: "Agency Professional",
+        price: 4499.00,
         duration: "monthly",
         features: "Premium listing, 20 featured tours, priority support, analytics",
         status: "active",
-        subscribers: 8
+        subscribers: 8,
+        type: "agency"
       },
       {
         id: 3,
-        name: "Enterprise Plan",
-        price: 4999.00,
+        name: "Agency Enterprise",
+        price: 8999.00,
         duration: "monthly",
         features: "Featured placement, unlimited tours, 24/7 support, advanced analytics",
         status: "active",
-        subscribers: 3
+        subscribers: 3,
+        type: "agency"
       },
       {
         id: 4,
-        name: "Annual Basic",
-        price: 9999.00,
+        name: "Annual Agency",
+        price: 19999.00,
         duration: "yearly",
-        features: "Basic plan with 2 months free",
+        features: "Professional plan with 2 months free",
         status: "inactive",
-        subscribers: 2
+        subscribers: 2,
+        type: "agency"
       }
     ];
-    setSubscriptionPlans(examplePlans);
+    setAgencySubscriptions(examplePlans);
   };
+
   const fetchAgencyCommissions = async () => {
-    // Enhanced with more realistic data matching TaraG Portal features
-    const exampleCommissions = [
-      {
-        id: 1,
-        agencyName: "Island Paradise Tours",
-        transactionId: "TXN-2024-001",
-        amount: 15000.00,
-        commission: 450.00,
-        date: "2024-01-15",
-        status: "processed",
-        paymentMethod: "PayMongo",
-        customerCount: 4,
-        packageType: "Island Hopping"
-      },
-      {
-        id: 2,
-        agencyName: "Mountain Trek Adventures",
-        transactionId: "TXN-2024-002",
-        amount: 8900.00,
-        commission: 267.00,
-        date: "2024-01-14",
-        status: "pending",
-        paymentMethod: "GCash",
-        customerCount: 2,
-        packageType: "Mountain Hiking"
-      },
-      {
-        id: 3,
-        agencyName: "Heritage Cultural Tours",
-        transactionId: "TXN-2024-003",
-        amount: 12500.00,
-        commission: 375.00,
-        date: "2024-01-13",
-        status: "processed",
-        paymentMethod: "Credit Card",
-        customerCount: 6,
-        packageType: "Cultural Tour"
-      },
-      {
-        id: 4,
-        agencyName: "Ocean Blue Expeditions",
-        transactionId: "TXN-2024-004",
-        amount: 21000.00,
-        commission: 630.00,
-        date: "2024-01-12",
-        status: "processed",
-        paymentMethod: "PayPal",
-        customerCount: 8,
-        packageType: "Diving Adventure"
-      },
-      {
-        id: 5,
-        agencyName: "Sunset Travel Co.",
-        transactionId: "TXN-2024-005",
-        amount: 7500.00,
-        commission: 225.00,
-        date: "2024-01-11",
-        status: "pending",
-        paymentMethod: "Bank Transfer",
-        customerCount: 3,
-        packageType: "Sunset Tour"
-      }
-    ];
-    setAgencyCommissions(exampleCommissions);
+    // Coming soon - no example data
+    setAgencyCommissions([]);
   };
 
   const fetchAdRevenue = async () => {
@@ -288,17 +288,18 @@ const RevenueManagement = () => {
     });
   };
 
-  const handleAddSubscription = () => {
-    const newId = subscriptionPlans.length > 0 ? Math.max(...subscriptionPlans.map(s => s.id)) + 1 : 1;
+  const handleAddUserSubscription = () => {
+    const newId = userSubscriptions.length > 0 ? Math.max(...userSubscriptions.map(s => s.id)) + 1 : 1;
     const subscription = {
-      ...newSubscription,
+      ...newUserSubscription,
       id: newId,
-      subscribers: 0
+      subscribers: 0,
+      type: "user"
     };
     
-    setSubscriptionPlans([...subscriptionPlans, subscription]);
-    setShowSubscriptionModal(false);
-    setNewSubscription({
+    setUserSubscriptions([...userSubscriptions, subscription]);
+    setShowUserSubscriptionModal(false);
+    setNewUserSubscription({
       name: '',
       price: '',
       duration: 'monthly',
@@ -307,8 +308,34 @@ const RevenueManagement = () => {
     });
   };
 
-  const handleUpdateSubscriptionStatus = (id, status) => {
-    setSubscriptionPlans(subscriptionPlans.map(plan => 
+  const handleAddAgencySubscription = () => {
+    const newId = agencySubscriptions.length > 0 ? Math.max(...agencySubscriptions.map(s => s.id)) + 1 : 1;
+    const subscription = {
+      ...newAgencySubscription,
+      id: newId,
+      subscribers: 0,
+      type: "agency"
+    };
+    
+    setAgencySubscriptions([...agencySubscriptions, subscription]);
+    setShowAgencySubscriptionModal(false);
+    setNewAgencySubscription({
+      name: '',
+      price: '',
+      duration: 'monthly',
+      features: '',
+      status: 'active'
+    });
+  };
+
+  const handleUpdateUserSubscriptionStatus = (id, status) => {
+    setUserSubscriptions(userSubscriptions.map(plan => 
+      plan.id === id ? {...plan, status} : plan
+    ));
+  };
+
+  const handleUpdateAgencySubscriptionStatus = (id, status) => {
+    setAgencySubscriptions(agencySubscriptions.map(plan => 
       plan.id === id ? {...plan, status} : plan
     ));
   };
@@ -485,12 +512,11 @@ const RevenueManagement = () => {
         <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
           {[
             { id: 'overview', label: 'Overview' },
-    { id: 'agency-commissions', label: 'Agency Commissions' },
-    { id: 'ad-revenue', label: 'Ad Revenue' },
-    { id: 'payment-methods', label: 'Payment Methods' },
-    { id: 'transactions', label: 'Transactions' },
-    { id: 'subscriptions', label: 'Subscriptions' },
-    { id: 'analytics', label: 'Analytics' }
+            { id: 'agency-commissions', label: 'Agency Commissions' },
+            { id: 'ad-revenue', label: 'Ad Revenue' },
+            { id: 'transactions', label: 'Transactions' },
+            { id: 'user-subscriptions', label: 'User Subscriptions' },
+            { id: 'agency-subscriptions', label: 'Agency Subscriptions' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -614,63 +640,75 @@ const RevenueManagement = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agency</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transaction ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Commission</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Method</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customers</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {agencyCommissions.map(commission => (
-                    <tr key={commission.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{commission.agencyName}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{commission.transactionId}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{commission.packageType}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        ₱{commission.amount.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-cyan-600">
-                        ₱{commission.commission.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{commission.paymentMethod}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{commission.customerCount}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {new Date(commission.date).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          commission.status === 'processed' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {commission.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {commission.status === 'pending' && (
-                          <button 
-                            onClick={() => handleProcessCommission(commission.id)}
-                            className="text-green-600 hover:text-green-900 px-2 py-1 rounded hover:bg-green-50 transition-colors"
-                          >
-                            Process
-                          </button>
-                        )}
-                      </td>
+              {agencyCommissions.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i className="fas fa-handshake text-gray-400 text-2xl"></i>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Coming Soon</h3>
+                  <p className="text-gray-500 max-w-md mx-auto">
+                    Agency commissions feature is currently under development. Check back soon for updates!
+                  </p>
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agency</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transaction ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Commission</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Method</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customers</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {agencyCommissions.map(commission => (
+                      <tr key={commission.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{commission.agencyName}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{commission.transactionId}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{commission.packageType}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          ₱{commission.amount.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-cyan-600">
+                          ₱{commission.commission.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{commission.paymentMethod}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{commission.customerCount}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {new Date(commission.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            commission.status === 'processed' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {commission.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {commission.status === 'pending' && (
+                            <button 
+                              onClick={() => handleProcessCommission(commission.id)}
+                              className="text-green-600 hover:text-green-900 px-2 py-1 rounded hover:bg-green-50 transition-colors"
+                            >
+                              Process
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         )}
@@ -745,69 +783,6 @@ const RevenueManagement = () => {
           </div>
         )}
 
-        {/* Payment Methods Tab */}
-        {activeTab === 'payment-methods' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">Payment Method Analytics</h2>
-              <p className="text-sm text-gray-500">Distribution of payment methods used by TaraG travelers</p>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-gray-50 rounded-xl p-6">
-                <h3 className="text-md font-semibold text-gray-900 mb-4">Revenue by Payment Method</h3>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={paymentMethodData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {paymentMethodData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`₱${value.toLocaleString()}`, 'Revenue']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-md font-semibold text-gray-900">Payment Method Details</h3>
-                {paymentMethodData.map((method, index) => (
-                  <div key={method.name} className="bg-white border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div 
-                          className="w-4 h-4 rounded-full mr-3" 
-                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                        ></div>
-                        <div>
-                          <p className="font-medium text-gray-900">{method.name}</p>
-                          <p className="text-sm text-gray-500">{method.count} transactions</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">₱{method.value.toLocaleString()}</p>
-                        <p className="text-sm text-gray-500">
-                          {((method.value / paymentMethodData.reduce((sum, m) => sum + m.value, 0)) * 100).toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'transactions' && (
     <div>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -864,33 +839,26 @@ const RevenueManagement = () => {
                   {new Date(transaction.date).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    transaction.status === 'completed' 
-                      ? 'bg-green-100 text-green-800' 
-                      : transaction.status === 'pending'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {transaction.status}
-                  </span>
+                  <select
+                    value={transaction.status}
+                    onChange={(e) => handleUpdateTransactionStatus(transaction.id, e.target.value)}
+                    className={`text-xs font-medium px-2 py-1 rounded-full border ${
+                      transaction.status === 'completed' 
+                        ? 'bg-green-100 text-green-800 border-green-200' 
+                        : transaction.status === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                        : 'bg-red-100 text-red-800 border-red-200'
+                    }`}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="refunded">Refunded</option>
+                  </select>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                  {transaction.status === 'pending' && (
-                    <>
-                      <button 
-                        onClick={() => handleUpdateTransactionStatus(transaction.id, 'completed')}
-                        className="text-green-600 hover:text-green-900"
-                      >
-                        Complete
-                      </button>
-                      <button 
-                        onClick={() => handleUpdateTransactionStatus(transaction.id, 'refunded')}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Refund
-                      </button>
-                    </>
-                  )}
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button className="text-cyan-600 hover:text-cyan-900 px-2 py-1 rounded hover:bg-cyan-50 transition-colors">
+                    View Details
+                  </button>
                 </td>
               </tr>
             ))}
@@ -900,68 +868,64 @@ const RevenueManagement = () => {
     </div>
   )}
 
-  {/* Subscriptions Tab */}
-  {activeTab === 'subscriptions' && (
+  {/* User Subscriptions Tab */}
+  {activeTab === 'user-subscriptions' && (
     <div>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">Subscription Plans</h2>
-        <button
-          onClick={() => setShowSubscriptionModal(true)}
-          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-500 text-white rounded-lg font-medium hover:from-cyan-600 hover:to-cyan-600 transition-all shadow-md mt-4 md:mt-0"
-        >
-          Create Plan
-        </button>
+        <h2 className="text-lg font-semibold text-gray-900">User Subscription Plans</h2>
+        <div className="flex space-x-3 mt-4 md:mt-0">
+          <button
+            onClick={() => setShowUserSubscriptionModal(true)}
+            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-500 text-white rounded-lg font-medium hover:from-cyan-600 hover:to-cyan-600 transition-all shadow-md hover:shadow-lg"
+          >
+            Add New Plan
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {subscriptionPlans.map(plan => (
-          <div key={plan.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+        {userSubscriptions.map(plan => (
+          <div key={plan.id} className="bg-white rounded-xl border border-gray-200 p-6 shadow-md hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                plan.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-              }`}>
-                {plan.status}
-              </span>
-            </div>
-            
-            <div className="mb-4">
-              <div className="text-3xl font-bold text-cyan-600">₱{plan.price.toLocaleString()}</div>
-              <div className="text-gray-500">per {plan.duration}</div>
-            </div>
-            
-            <div className="mb-4">
-              <div className="flex items-center text-sm text-gray-500 mb-1">
-                <i className="fas fa-users mr-2"></i>
-                {plan.subscribers} subscribers
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                <p className="text-2xl font-bold text-cyan-600 mt-2">₱{plan.price.toLocaleString()}</p>
+                <p className="text-sm text-gray-500 capitalize">{plan.duration}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  plan.status === 'active' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {plan.status}
+                </span>
+                <select
+                  value={plan.status}
+                  onChange={(e) => handleUpdateUserSubscriptionStatus(plan.id, e.target.value)}
+                  className="text-xs border-gray-300 rounded"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
             </div>
             
-            <div className="mb-6">
-              <h4 className="font-medium text-gray-900 mb-2">Features:</h4>
-              <ul className="text-sm text-gray-600 space-y-1">
-                {plan.features.split(',').map((feature, index) => (
-                  <li key={index} className="flex items-start">
-                    <i className="fas fa-check text-green-500 mt-1 mr-2 text-xs"></i>
-                    <span>{feature.trim()}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 line-clamp-2">{plan.features}</p>
             </div>
             
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleUpdateSubscriptionStatus(plan.id, plan.status === 'active' ? 'inactive' : 'active')}
-                className={`flex-1 px-4 py-2 rounded-lg font-medium ${
-                  plan.status === 'active' 
-                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
-                    : 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200'
-                } transition-colors`}
-              >
-                {plan.status === 'active' ? 'Deactivate' : 'Activate'}
+            <div className="flex justify-between items-center text-sm text-gray-500">
+              <span>{plan.subscribers} subscribers</span>
+              <span className="capitalize">{plan.type}</span>
+            </div>
+            
+            <div className="mt-4 flex space-x-2">
+              <button className="flex-1 bg-cyan-50 text-cyan-700 py-2 rounded-lg text-sm font-medium hover:bg-cyan-100 transition-colors">
+                Edit Plan
               </button>
-              <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                Edit
+              <button className="flex-1 bg-gray-50 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                View Analytics
               </button>
             </div>
           </div>
@@ -970,290 +934,238 @@ const RevenueManagement = () => {
     </div>
   )}
 
-        {/* Analytics Tab */}
-        {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">Advanced Analytics</h2>
-              <button
-                onClick={() => exportData('analytics')}
-                className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-              >
-                Export Analytics
-              </button>
-            </div>
-
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-md hover:shadow-lg transition-shadow">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-gray-500 text-sm font-medium">Conversion Rate</p>
-        <p className="text-3xl font-bold text-gray-900">{metrics.conversionRate.toFixed(1)}%</p>
-      </div>
-      <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-        <i className="fas fa-percent text-indigo-600"></i>
-      </div>
-    </div>
-  </div>
-  
-  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-md hover:shadow-lg transition-shadow">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-gray-500 text-sm font-medium">Total Transactions</p>
-        <p className="text-3xl font-bold text-gray-900">{metrics.totalTransactions}</p>
-      </div>
-      <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
-        <i className="fas fa-receipt text-pink-600"></i>
-      </div>
-    </div>
-  </div>
-  
-  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-md hover:shadow-lg transition-shadow">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-gray-500 text-sm font-medium">Active Agencies</p>
-        <p className="text-3xl font-bold text-gray-900">{new Set(agencyCommissions.map(c => c.agencyName)).size}</p>
-      </div>
-      <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-        <i className="fas fa-building text-teal-600"></i>
-      </div>
-    </div>
-  </div>
-</div>
-
-            {/* Revenue Breakdown Chart */}
-            <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Commission vs Ad Revenue Comparison</h3>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`₱${value.toLocaleString()}`, '']} />
-                    <Bar dataKey="commissions" fill="#8B5CF6" name="Commissions" />
-                    <Bar dataKey="adRevenue" fill="#06B6D4" name="Ad Revenue" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Top Performing Agencies */}
-            <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Agencies</h3>
-              <div className="space-y-3">
-                {agencyCommissions
-                  .reduce((acc, commission) => {
-                    const existing = acc.find(a => a.name === commission.agencyName);
-                    if (existing) {
-                      existing.revenue += commission.commission;
-                      existing.transactions += 1;
-                    } else {
-                      acc.push({
-                        name: commission.agencyName,
-                        revenue: commission.commission,
-                        transactions: 1
-                      });
-                    }
-                    return acc;
-                  }, [])
-                  .sort((a, b) => b.revenue - a.revenue)
-                  .slice(0, 5)
-                  .map((agency, index) => (
-                    <div key={agency.name} className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-cyan-100 rounded-full flex items-center justify-center mr-3">
-                          <span className="text-cyan-600 font-semibold text-sm">#{index + 1}</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{agency.name}</p>
-                          <p className="text-sm text-gray-500">{agency.transactions} transactions</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-cyan-600">₱{agency.revenue.toLocaleString()}</p>
-                        <p className="text-sm text-gray-500">commission earned</p>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div> 
-
-  {/* Add Subscription Modal */}
-  {showSubscriptionModal && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-gray-900">Create Subscription Plan</h3>
-          <button 
-            onClick={() => setShowSubscriptionModal(false)}
-            className="text-gray-400 hover:text-gray-600"
+  {/* Agency Subscriptions Tab */}
+  {activeTab === 'agency-subscriptions' && (
+    <div>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <h2 className="text-lg font-semibold text-gray-900">Agency Subscription Plans</h2>
+        <div className="flex space-x-3 mt-4 md:mt-0">
+          <button
+            onClick={() => setShowAgencySubscriptionModal(true)}
+            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-500 text-white rounded-lg font-medium hover:from-cyan-600 hover:to-cyan-600 transition-all shadow-md hover:shadow-lg"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            Add New Plan
           </button>
         </div>
-        
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Plan Name</label>
-            <input
-              type="text"
-              value={newSubscription.name}
-              onChange={(e) => setNewSubscription({...newSubscription, name: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-              placeholder="Enter plan name"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Price (₱)</label>
-            <input
-              type="number"
-              value={newSubscription.price}
-              onChange={(e) => setNewSubscription({...newSubscription, price: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-              placeholder="Enter price"
-              min="0"
-              step="0.01"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
-            <select
-              value={newSubscription.duration}
-              onChange={(e) => setNewSubscription({...newSubscription, duration: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Features (comma separated)</label>
-            <textarea
-              value={newSubscription.features}
-              onChange={(e) => setNewSubscription({...newSubscription, features: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-              placeholder="Feature 1, Feature 2, Feature 3"
-              rows="3"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <select
-              value={newSubscription.status}
-              onChange={(e) => setNewSubscription({...newSubscription, status: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
+      </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              onClick={() => setShowSubscriptionModal(false)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddSubscription}
-              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-500 text-white rounded-lg font-medium hover:from-cyan-600 hover:to-cyan-600 transition-all shadow-md"
-            >
-              Create Plan
-            </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {agencySubscriptions.map(plan => (
+          <div key={plan.id} className="bg-white rounded-xl border border-gray-200 p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                <p className="text-2xl font-bold text-cyan-600 mt-2">₱{plan.price.toLocaleString()}</p>
+                <p className="text-sm text-gray-500 capitalize">{plan.duration}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  plan.status === 'active' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {plan.status}
+                </span>
+                <select
+                  value={plan.status}
+                  onChange={(e) => handleUpdateAgencySubscriptionStatus(plan.id, e.target.value)}
+                  className="text-xs border-gray-300 rounded"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 line-clamp-2">{plan.features}</p>
+            </div>
+            
+            <div className="flex justify-between items-center text-sm text-gray-500">
+              <span>{plan.subscribers} subscribers</span>
+              <span className="capitalize">{plan.type}</span>
+            </div>
+            
+            <div className="mt-4 flex space-x-2">
+              <button className="flex-1 bg-cyan-50 text-cyan-700 py-2 rounded-lg text-sm font-medium hover:bg-cyan-100 transition-colors">
+                Edit Plan
+              </button>
+              <button className="flex-1 bg-gray-50 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                View Analytics
+              </button>
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   )}
-      {/* Enhanced Commission Rate Modal */}
+
+      </div>
+
+      {/* Commission Rate Modal */}
       {showRateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">Revenue Settings</h3>
-              <button 
-                onClick={() => setShowRateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Commission Settings</h3>
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Commission Rate (%)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Commission Rate (%)
+                </label>
                 <input
                   type="number"
                   value={commissionRate}
-                  onChange={(e) => setCommissionRate(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
+                  onChange={(e) => setCommissionRate(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                   min="0"
                   max="100"
                   step="0.1"
                 />
-                <p className="text-sm text-gray-500 mt-1">Current rate: {commissionRate}% of agency transactions</p>
               </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">TaraG Payment Integration Status</h4>
-                <div className="space-y-2 text-sm text-blue-800">
-                  <div className="flex items-center">
-                    <i className="fas fa-check-circle text-green-500 mr-2"></i>
-                    PayMongo API - Integrated
-                  </div>
-                  <div className="flex items-center">
-                    <i className="fas fa-check-circle text-green-500 mr-2"></i>
-                    GCash - Integrated
-                  </div>
-                  <div className="flex items-center">
-                    <i className="fas fa-check-circle text-green-500 mr-2"></i>
-                    PayPal - Integrated
-                  </div>
-                  <div className="flex items-center">
-                    <i className="fas fa-clock text-yellow-500 mr-2"></i>
-                    Bank Transfer - Pending Setup
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex">
-                  <svg className="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <div className="text-sm text-yellow-700">
-                    Changing the commission rate will affect future transactions only. Existing commissions will not be modified.
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex space-x-3 pt-4">
                 <button
                   onClick={() => setShowRateModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUpdateCommissionRate}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-500 text-white rounded-lg font-medium hover:from-cyan-600 hover:to-cyan-600 transition-all shadow-md"
+                  className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
                 >
-                  Update Settings
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Subscription Modal */}
+      {showUserSubscriptionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add User Subscription Plan</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Plan Name</label>
+                <input
+                  type="text"
+                  value={newUserSubscription.name}
+                  onChange={(e) => setNewUserSubscription({...newUserSubscription, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  placeholder="Enter plan name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Price (₱)</label>
+                <input
+                  type="number"
+                  value={newUserSubscription.price}
+                  onChange={(e) => setNewUserSubscription({...newUserSubscription, price: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  placeholder="Enter price"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                <select
+                  value={newUserSubscription.duration}
+                  onChange={(e) => setNewUserSubscription({...newUserSubscription, duration: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Features</label>
+                <textarea
+                  value={newUserSubscription.features}
+                  onChange={(e) => setNewUserSubscription({...newUserSubscription, features: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  rows="3"
+                  placeholder="Describe plan features"
+                />
+              </div>
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={() => setShowUserSubscriptionModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddUserSubscription}
+                  className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+                >
+                  Add Plan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Agency Subscription Modal */}
+      {showAgencySubscriptionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Agency Subscription Plan</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Plan Name</label>
+                <input
+                  type="text"
+                  value={newAgencySubscription.name}
+                  onChange={(e) => setNewAgencySubscription({...newAgencySubscription, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  placeholder="Enter plan name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Price (₱)</label>
+                <input
+                  type="number"
+                  value={newAgencySubscription.price}
+                  onChange={(e) => setNewAgencySubscription({...newAgencySubscription, price: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  placeholder="Enter price"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                <select
+                  value={newAgencySubscription.duration}
+                  onChange={(e) => setNewAgencySubscription({...newAgencySubscription, duration: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Features</label>
+                <textarea
+                  value={newAgencySubscription.features}
+                  onChange={(e) => setNewAgencySubscription({...newAgencySubscription, features: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                  rows="3"
+                  placeholder="Describe plan features"
+                />
+              </div>
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={() => setShowAgencySubscriptionModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddAgencySubscription}
+                  className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+                >
+                  Add Plan
                 </button>
               </div>
             </div>

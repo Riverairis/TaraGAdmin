@@ -109,7 +109,7 @@ const AdminDashboard = ({ onLogout }) => {
         {activeSection === 'home' && (
           <div className="p-6 md:p-8">
             <div className="max-w-7xl mx-auto">
-              <div className="bg-gradient-to-r from-cyan-500 to-teal-500 text-white p-8 rounded-2xl shadow-lg relative overflow-hidden mb-8">
+              <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-8 rounded-2xl shadow-lg relative overflow-hidden mb-8">
                 <div className="flex flex-col md:flex-row justify-between items-center relative z-10">
                   <div className="mb-6 md:mb-0">
                     <h1 className="text-3xl md:text-4xl font-bold mb-2">Hello, {adminName}!</h1>

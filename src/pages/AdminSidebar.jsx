@@ -40,8 +40,8 @@ const AdminSidebar = ({ isSidebarOpen, setIsSidebarOpen, adminName, activeSectio
               className="w-10 h-10 rounded-lg mr-3"
             />
             <div>
-              <div className="font-bold text-gray-800" style={{ fontFamily: 'Poppins, sans-serif' }}>TaraG</div>
-              <div className="text-xs text-gray-500" style={{ fontFamily: 'Poppins, sans-serif' }}>Administrator Panel</div>
+              <div className="text-black" style={{ fontFamily: 'Poppins, sans-serif' }}>TaraG</div>
+              <div className="text-xs text-black" style={{ fontFamily: 'Poppins, sans-serif' }}>Administrator Panel</div>
             </div>
           </div>
         </div>
@@ -51,35 +51,29 @@ const AdminSidebar = ({ isSidebarOpen, setIsSidebarOpen, adminName, activeSectio
           <div className="space-y-2">
             <Link
               to="/admin-dashboard"
-              className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+              className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors ${
                 activeSection === 'home'
-                  ? 'bg-cyan-100 text-cyan-800'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-cyan-100 text-black'
+                  : 'text-black hover:bg-gray-100 hover:text-black'
               }`}
               style={{ fontFamily: 'Poppins, sans-serif' }}
             >
-              <span className={`material-icons mr-3 text-lg ${activeSection === 'home' ? 'text-cyan-800' : 'text-gray-600'}`}>
+              <span className={`material-icons mr-3 text-lg ${activeSection === 'home' ? 'text-black' : 'text-black'}`}>
                 dashboard
               </span>
               Dashboard
             </Link>
             
-            <div className="pt-6 pb-2">
-              <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                User Management
-              </p>
-            </div>
-            
             <Link
               to="/admin-dashboard?section=travelers"
-              className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+              className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors ${
                 activeSection === 'travelers'
-                  ? 'bg-cyan-100 text-cyan-800'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-cyan-100 text-black'
+                  : 'text-black hover:bg-gray-100 hover:text-black'
               }`}
               style={{ fontFamily: 'Poppins, sans-serif' }}
             >
-              <span className={`material-icons mr-3 text-lg ${activeSection === 'travelers' ? 'text-cyan-800' : 'text-gray-600'}`}>
+              <span className={`material-icons mr-3 text-lg ${activeSection === 'travelers' ? 'text-black' : 'text-black'}`}>
                 groups
               </span>
               Travelers
@@ -87,15 +81,15 @@ const AdminSidebar = ({ isSidebarOpen, setIsSidebarOpen, adminName, activeSectio
             
             <Link
               to="/admin-dashboard?section=tour-agencies"
-              className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+              className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors ${
                 activeSection === 'tour-agencies'
-                  ? 'bg-cyan-100 text-cyan-800'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-cyan-100 text-black'
+                  : 'text-black hover:bg-gray-100 hover:text-black'
               }`}
               onClick={() => navigate('/admin-dashboard?section=tour-agencies')}
               style={{ fontFamily: 'Poppins, sans-serif' }}
             >
-              <span className={`material-icons mr-3 text-lg ${activeSection === 'tour-agencies' ? 'text-cyan-800' : 'text-gray-600'}`}>
+              <span className={`material-icons mr-3 text-lg ${activeSection === 'tour-agencies' ? 'text-black' : 'text-black'}`}>
                 business
               </span>
               Agencies
@@ -103,14 +97,14 @@ const AdminSidebar = ({ isSidebarOpen, setIsSidebarOpen, adminName, activeSectio
 
             <Link
               to="/admin-dashboard?section=emergency"
-              className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+              className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors ${
                 activeSection === 'emergency'
-                  ? 'bg-cyan-100 text-cyan-800'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-cyan-100 text-black'
+                  : 'text-black hover:bg-gray-100 hover:text-black'
               }`}
               style={{ fontFamily: 'Poppins, sans-serif' }}
             >
-              <span className={`material-icons mr-3 text-lg ${activeSection === 'emergency' ? 'text-cyan-800' : 'text-gray-600'}`}>
+              <span className={`material-icons mr-3 text-lg ${activeSection === 'emergency' ? 'text-black' : 'text-black'}`}>
                 emergency
               </span>
               Emergency
@@ -118,35 +112,29 @@ const AdminSidebar = ({ isSidebarOpen, setIsSidebarOpen, adminName, activeSectio
 
             <Link
               to="/admin-dashboard?section=revenue"
-              className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+              className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors ${
                 activeSection === 'revenue'
-                  ? 'bg-cyan-100 text-cyan-800'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-cyan-100 text-black'
+                  : 'text-black hover:bg-gray-100 hover:text-black'
               }`}
               style={{ fontFamily: 'Poppins, sans-serif' }}
             >
-              <span className={`material-icons mr-3 text-lg ${activeSection === 'revenue' ? 'text-cyan-800' : 'text-gray-600'}`}>
+              <span className={`material-icons mr-3 text-lg ${activeSection === 'revenue' ? 'text-black' : 'text-black'}`}>
                 trending_up
               </span>
               Revenue
             </Link>
             
-            <div className="pt-6 pb-2">
-              <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider" style={{ fontFamily: 'Poppins, sans-serif' }}>
-                Global Settings
-              </p>
-            </div>
-
             <Link
               to="/admin-dashboard?section=alerts"
-              className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+              className={`flex items-center px-4 py-3 text-sm rounded-lg transition-colors ${
                 activeSection === 'alerts'
-                  ? 'bg-cyan-100 text-cyan-800'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-cyan-100 text-black'
+                  : 'text-black hover:bg-gray-100 hover:text-black'
               }`}
               style={{ fontFamily: 'Poppins, sans-serif' }}
             >
-              <span className={`material-icons mr-3 text-lg ${activeSection === 'alerts' ? 'text-cyan-800' : 'text-gray-600'}`}>
+              <span className={`material-icons mr-3 text-lg ${activeSection === 'alerts' ? 'text-black' : 'text-black'}`}>
                 campaign
               </span>
               Alerts
@@ -156,30 +144,32 @@ const AdminSidebar = ({ isSidebarOpen, setIsSidebarOpen, adminName, activeSectio
 
         {/* Fixed Bottom Profile Section */}
         <div className="flex-shrink-0 p-6 border-t border-gray-200 mt-auto">
-          <button
-            onClick={() => navigate('/admin-dashboard?section=profile')}
-            className="flex items-center mb-4 w-full p-2 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <div className="w-10 h-10 bg-cyan-600 rounded-full flex items-center justify-center mr-3 text-white font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              {adminName.charAt(0)}
-            </div>
-            <div className="flex-1 text-left">
-              <div className="font-medium text-gray-900" style={{ fontFamily: 'Poppins, sans-serif' }}>{adminName}</div>
-              <div className="text-xs text-gray-500" style={{ fontFamily: 'Poppins, sans-serif' }}>Administrator</div>
-            </div>
-          </button>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            style={{ fontFamily: 'Poppins, sans-serif' }}
-          >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3 bg-gray-500">
-              <span className="material-icons text-white text-lg">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => navigate('/admin-dashboard?section=profile')}
+              className="flex items-center p-2 rounded-lg hover:bg-gray-50 transition-colors flex-1"
+            >
+              <div className="w-10 h-10 bg-cyan-600 rounded-full flex items-center justify-center mr-3 text-white" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                {adminName.charAt(0)}
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-black" style={{ fontFamily: 'Poppins, sans-serif' }}>{adminName}</div>
+                <div className="text-xs text-black" style={{ fontFamily: 'Poppins, sans-serif' }}>Administrator</div>
+              </div>
+            </button>
+            
+            {/* Logout button beside profile */}
+            <button
+              onClick={handleLogout}
+              className="ml-2 p-2 text-black hover:bg-gray-100 hover:text-black rounded-lg transition-colors"
+              title="Logout"
+              style={{ fontFamily: 'Poppins, sans-serif' }}
+            >
+              <span className="material-icons text-lg">
                 logout
               </span>
-            </div>
-            Logout
-          </button>
+            </button>
+          </div>
         </div>
       </aside>
     </>

@@ -6,6 +6,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // Proxy API requests to the backend server during development
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api')
+      }
+    }
   },
   root: '.', // Set root to the frontend folder
   build: {
