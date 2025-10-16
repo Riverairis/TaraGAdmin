@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import UserList from './UserList.jsx';
 import TourAgencyList from './TourAgencyList.jsx';
 import AlertsAnnouncements from './AlertsAnnouncements.jsx';
-import GlobalSettings from './GlobalSettings.jsx';
 import AdminSidebar from './AdminSidebar.jsx';
 import EmergencyMonitoring from './EmergencyMonitoring.jsx';
 import AnalyticsDashboard from './AnalyticsDashboard.jsx';

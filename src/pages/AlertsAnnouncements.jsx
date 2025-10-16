@@ -21,14 +21,14 @@ const IntegratedAlertsSystem = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // New filter states
+  // New filter states - Updated to match DisasterMonitoring design
   const [locationFilter, setLocationFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [targetFilter, setTargetFilter] = useState('all');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
-  // Emergency Monitoring State
+  // Disaster Monitoring State
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [alertHistory, setAlertHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -430,497 +430,536 @@ const IntegratedAlertsSystem = () => {
     return matchesSearch && matchesLocation && matchesDate && matchesSeverity && matchesTarget;
   });
 
+  const activeFiltersCount = [
+    searchTerm,
+    locationFilter,
+    dateFilter,
+    severityFilter !== 'all',
+    targetFilter !== 'all'
+  ].filter(Boolean).length;
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-      {/* Header Section */}
-      <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-cyan-50 to-white dark:from-gray-700 dark:to-gray-800">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Alerts & Emergency Management</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-300">Manage announcements and monitor emergency situations</p>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-        <div className="flex px-6">
-          <button
-            onClick={() => setActiveTab('alerts')}
-            className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
-              activeTab === 'alerts'
-                ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            <i className="fas fa-bullhorn mr-2"></i>
-            Alerts
-          </button>
-          <button
-            onClick={() => setActiveTab('emergency')}
-            className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors relative ${
-              activeTab === 'emergency'
-                ? 'border-red-500 text-red-600 dark:text-red-400'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            <i className="fas fa-exclamation-triangle mr-2"></i>
-            Emergency Monitoring
-            {activeTab === 'emergency' && activeAlerts.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {activeAlerts.length}
-              </span>
-            )}
-          </button>
+    <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Header - Updated to match DisasterMonitoring design */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Alerts & Disaster Monitoring</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage announcements and monitor disaster situations</p>
         </div>
-      </div>
 
-      {/* Alerts Tab Content */}
-      {activeTab === 'alerts' && (
-        <div className="p-6 bg-white dark:bg-gray-800">
-          {/* Action Bar - Improved Layout */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-            {/* Title and Count */}
-            <div className="lg:hidden">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Recent Alerts & Announcements</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{filteredAlerts.length} {filteredAlerts.length === 1 ? 'alert' : 'alerts'}</p>
-            </div>
-
-            {/* Search and Filter Section - Moved to right side beside New Alert button */}
-            <div className="flex items-center gap-3 flex-1 lg:justify-end">
-              {/* Search Bar with integrated Filter */}
-              <div className="relative flex-1 lg:flex-initial lg:min-w-[300px]">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <i className="fas fa-search text-gray-400 text-sm"></i>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search alerts..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-10 w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
+        {/* Main Container - Updated to match DisasterMonitoring design */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Tab Navigation - Updated styling */}
+          <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+            <div className="flex px-6">
+              <button
+                onClick={() => setActiveTab('alerts')}
+                className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                  activeTab === 'alerts'
+                    ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
                 
-                {/* Filter Icon inside Search Bar */}
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                      className={`p-1.5 rounded-lg transition-all duration-200 ${
-                        showFilterDropdown || locationFilter || dateFilter || severityFilter !== 'all' || targetFilter !== 'all'
-                          ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700'
-                          : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      <i className="fas fa-filter text-sm"></i>
-                      {(locationFilter || dateFilter || severityFilter !== 'all' || targetFilter !== 'all') && (
-                        <span className="absolute -top-1 -right-1 bg-cyan-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                          {[locationFilter, dateFilter, severityFilter !== 'all', targetFilter !== 'all'].filter(Boolean).length}
-                        </span>
-                      )}
-                    </button>
-
-                    {/* Filter Dropdown - Improved Design */}
-                    {showFilterDropdown && (
-                      <div className="absolute top-full right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-20 p-4 max-h-[80vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-4">
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Filter Alerts</h3>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={clearFilters}
-                              className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 font-medium"
-                            >
-                              Clear All
-                            </button>
-                            <button
-                              onClick={() => setShowFilterDropdown(false)}
-                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
-                            >
-                              <i className="fas fa-times text-sm"></i>
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-4">
-                          {/* Location Filter */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
-                              Location
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Enter location..."
-                              value={locationFilter}
-                              onChange={(e) => setLocationFilter(e.target.value)}
-                              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                          </div>
-
-                          {/* Date Filter */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
-                              Date
-                            </label>
-                            <input
-                              type="date"
-                              value={dateFilter}
-                              onChange={(e) => setDateFilter(e.target.value)}
-                              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                          </div>
-
-                          {/* Severity Filter */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
-                              Severity
-                            </label>
-                            <select
-                              value={severityFilter}
-                              onChange={(e) => setSeverityFilter(e.target.value)}
-                              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            >
-                              <option value="all">All Severities</option>
-                              <option value="high">High</option>
-                              <option value="medium">Medium</option>
-                              <option value="low">Low</option>
-                            </select>
-                          </div>
-
-                          {/* Target Audience Filter */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
-                              Target Audience
-                            </label>
-                            <select
-                              value={targetFilter}
-                              onChange={(e) => setTargetFilter(e.target.value)}
-                              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            >
-                              <option value="all">All Audiences</option>
-                              <option value="all">Everyone</option>
-                              <option value="travelers">Travelers Only</option>
-                              <option value="guides">Tour Guides Only</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Active Filters Display */}
-                        {(locationFilter || dateFilter || severityFilter !== 'all' || targetFilter !== 'all') && (
-                          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Active Filters:</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {locationFilter && (
-                                <span className="inline-flex items-center px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded-full border border-cyan-200 dark:border-cyan-700">
-                                  Location: {locationFilter}
-                                  <button
-                                    onClick={() => setLocationFilter('')}
-                                    className="ml-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 text-xs"
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              )}
-                              {dateFilter && (
-                                <span className="inline-flex items-center px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded-full border border-cyan-200 dark:border-cyan-700">
-                                  Date: {dateFilter}
-                                  <button
-                                    onClick={() => setDateFilter('')}
-                                    className="ml-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 text-xs"
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              )}
-                              {severityFilter !== 'all' && (
-                                <span className="inline-flex items-center px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded-full border border-cyan-200 dark:border-cyan-700">
-                                  Severity: {severityFilter}
-                                  <button
-                                    onClick={() => setSeverityFilter('all')}
-                                    className="ml-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 text-xs"
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              )}
-                              {targetFilter !== 'all' && (
-                                <span className="inline-flex items-center px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded-full border border-cyan-200 dark:border-cyan-700">
-                                  Target: {targetFilter === 'all' ? 'Everyone' : targetFilter === 'travelers' ? 'Travelers' : 'Guides'}
-                                  <button
-                                    onClick={() => setTargetFilter('all')}
-                                    className="ml-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 text-xs"
-                                  >
-                                    ×
-                                  </button>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* New Alert Button */}
-              <div className="flex-shrink-0">
-                <button
-                  onClick={() => {
-                    const now = new Date();
-                    const currentTime = now.getFullYear() + '-' + 
-                      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-                      String(now.getDate()).padStart(2, '0') + 'T' + 
-                      String(now.getHours()).padStart(2, '0') + ':' + 
-                      String(now.getMinutes()).padStart(2, '0');
-                    
-                    const endDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-                    const endTime = endDate.getFullYear() + '-' + 
-                      String(endDate.getMonth() + 1).padStart(2, '0') + '-' + 
-                      String(endDate.getDate()).padStart(2, '0') + 'T' + 
-                      String(endDate.getHours()).padStart(2, '0') + ':' + 
-                      String(endDate.getMinutes()).padStart(2, '0');
-                    
-                    setNewAlert({
-                      ...initialNewAlert,
-                      startOn: currentTime,
-                      endOn: endTime
-                    });
-                    setIsModalOpen(true);
-                  }}
-                  className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-5 py-2.5 rounded-xl hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium text-sm w-full justify-center lg:w-auto"
-                >
-                  <i className="fas fa-plus"></i>
-                  New Alert
-                </button>
-              </div>
+                Alerts
+              </button>
+              <button
+                onClick={() => setActiveTab('emergency')}
+                className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors relative ${
+                  activeTab === 'emergency'
+                    ? 'border-red-500 text-red-600 dark:text-red-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+              
+               Disaster Monitoring
+                {activeTab === 'emergency' && activeAlerts.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {activeAlerts.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
-          {/* Alerts List */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-            
-            
-            {filteredAlerts.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 p-4 mb-4">
-                  <i className="fas fa-bell-slash text-2xl text-gray-400"></i>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No alerts found</h3>
-                <p className="text-gray-500 dark:text-gray-400">Try changing your search or filter parameters</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredAlerts.map(alert => (
-                  <div key={alert.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-start">
-                          <div className={`rounded-lg p-3 mr-4 ${getTypeColor(alert.type)}`}>
-                            <i className={`${getTypeIcon(alert.type)} text-lg`}></i>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{alert.title}</h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center ${
-                                alert.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                alert.status === 'Sent' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                                'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                              }`}>
-                                <i className={`${getStatusIcon(alert.status)} mr-1 text-xs`}></i>
-                                {alert.status}
-                              </span>
-                            </div>
-                            <p className="text-gray-700 dark:text-gray-300 mt-2 mb-4">{alert.message}</p>
-                            
-                            <div className="flex flex-wrap items-center text-sm text-gray-500 dark:text-gray-400 gap-4">
-                              <span className="inline-flex items-center">
-                                <i className="fas fa-calendar-alt mr-2"></i>
-                                {alert.date}
-                              </span>
-                              <span className="inline-flex items-center">
-                                <i className="fas fa-users mr-2"></i>
-                                {alert.targetAudience === 'all' ? 'All Users' : 
-                                  alert.targetAudience === 'travelers' ? 'Travelers Only' : 'Tour Guides Only'}
-                              </span>
-                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityBadge(alert.priority).class}`}>
-                                {getPriorityBadge(alert.priority).text} Priority
-                              </span>
-                            </div>
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === 'alerts' && (
+              <div className="bg-white dark:bg-gray-800">
+                {/* Controls - Updated to match DisasterMonitoring design */}
+                <div className="mb-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    {/* Search and Filter Section - DisasterMonitoring Style */}
+                    <div className="flex items-center gap-3 flex-1 lg:justify-end">
+                      {/* Search Bar with integrated Filter */}
+                      <div className="relative flex-1 lg:flex-initial lg:min-w-[300px]">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <i className="fas fa-search text-gray-400 text-sm"></i>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Search alerts..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 pr-10 w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        
+                        {/* Filter Icon inside Search Bar */}
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                              className={`p-1.5 rounded-lg transition-all duration-200 ${
+                                showFilterDropdown || activeFiltersCount > 0
+                                  ? 'bg-cyan-50 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700'
+                                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                              }`}
+                            >
+                              <i className="fas fa-filter text-sm"></i>
+                              {activeFiltersCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-cyan-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                                  {activeFiltersCount}
+                                </span>
+                              )}
+                            </button>
+
+                            {/* Filter Dropdown - DisasterMonitoring Style */}
+                            {showFilterDropdown && (
+                              <div className="absolute top-full right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-20 p-4 max-h-[80vh] overflow-y-auto">
+                                <div className="flex justify-between items-center mb-4">
+                                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Filter Alerts</h3>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={clearFilters}
+                                      className="text-xs text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 font-medium"
+                                    >
+                                      Clear All
+                                    </button>
+                                    <button
+                                      onClick={() => setShowFilterDropdown(false)}
+                                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
+                                    >
+                                      <i className="fas fa-times text-sm"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                  {/* Location Filter */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                                      Location
+                                    </label>
+                                    <input
+                                      type="text"
+                                      placeholder="Enter location..."
+                                      value={locationFilter}
+                                      onChange={(e) => setLocationFilter(e.target.value)}
+                                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    />
+                                  </div>
+
+                                  {/* Date Filter */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                                      Date
+                                    </label>
+                                    <input
+                                      type="date"
+                                      value={dateFilter}
+                                      onChange={(e) => setDateFilter(e.target.value)}
+                                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    />
+                                  </div>
+
+                                  {/* Severity Filter */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                                      Severity
+                                    </label>
+                                    <select
+                                      value={severityFilter}
+                                      onChange={(e) => setSeverityFilter(e.target.value)}
+                                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    >
+                                      <option value="all">All Severities</option>
+                                      <option value="high">High</option>
+                                      <option value="medium">Medium</option>
+                                      <option value="low">Low</option>
+                                    </select>
+                                  </div>
+
+                                  {/* Target Audience Filter */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                                      Target Audience
+                                    </label>
+                                    <select
+                                      value={targetFilter}
+                                      onChange={(e) => setTargetFilter(e.target.value)}
+                                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    >
+                                      <option value="all">All Audiences</option>
+                                      <option value="all">Everyone</option>
+                                      <option value="travelers">Travelers Only</option>
+                                      <option value="guides">Tour Guides Only</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                {/* Active Filters Display */}
+                                {activeFiltersCount > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">Active Filters:</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {searchTerm && (
+                                        <span className="inline-flex items-center px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded-full border border-cyan-200 dark:border-cyan-700">
+                                          Search: {searchTerm}
+                                          <button
+                                            onClick={() => setSearchTerm('')}
+                                            className="ml-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 text-xs"
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
+                                      )}
+                                      {locationFilter && (
+                                        <span className="inline-flex items-center px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded-full border border-cyan-200 dark:border-cyan-700">
+                                          Location: {locationFilter}
+                                          <button
+                                            onClick={() => setLocationFilter('')}
+                                            className="ml-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 text-xs"
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
+                                      )}
+                                      {dateFilter && (
+                                        <span className="inline-flex items-center px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded-full border border-cyan-200 dark:border-cyan-700">
+                                          Date: {dateFilter}
+                                          <button
+                                            onClick={() => setDateFilter('')}
+                                            className="ml-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 text-xs"
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
+                                      )}
+                                      {severityFilter !== 'all' && (
+                                        <span className="inline-flex items-center px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded-full border border-cyan-200 dark:border-cyan-700">
+                                          Severity: {severityFilter}
+                                          <button
+                                            onClick={() => setSeverityFilter('all')}
+                                            className="ml-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 text-xs"
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
+                                      )}
+                                      {targetFilter !== 'all' && (
+                                        <span className="inline-flex items-center px-2 py-1 bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 text-xs rounded-full border border-cyan-200 dark:border-cyan-700">
+                                          Target: {targetFilter === 'all' ? 'Everyone' : targetFilter === 'travelers' ? 'Travelers' : 'Guides'}
+                                          <button
+                                            onClick={() => setTargetFilter('all')}
+                                            className="ml-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 text-xs"
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
-                        <div className="flex flex-col items-end space-y-2 ml-4">
-                        <div className="flex space-x-2">
-                          <button
-                            aria-label={`Edit alert ${alert.title}`}
-                            onClick={(e) => { e.stopPropagation(); handleEditAlert(alert); }}
-                            className="p-2 text-gray-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900 rounded-lg transition-colors"
-                          >
-                            <i className="fas fa-edit"></i>
-                          </button>
-                          <button
-                            aria-label={`Delete alert ${alert.title}`}
-                            onClick={(e) => { e.stopPropagation(); handleDeleteAlert(alert.id); }}
-                            className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
-                          >
-                            <i className="fas fa-trash"></i>
-                          </button>
-                        </div>
+
+                      {/* New Alert Button */}
+                      <div className="flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            const now = new Date();
+                            const currentTime = now.getFullYear() + '-' + 
+                              String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                              String(now.getDate()).padStart(2, '0') + 'T' + 
+                              String(now.getHours()).padStart(2, '0') + ':' + 
+                              String(now.getMinutes()).padStart(2, '0');
+                            
+                            const endDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+                            const endTime = endDate.getFullYear() + '-' + 
+                              String(endDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                              String(endDate.getDate()).padStart(2, '0') + 'T' + 
+                              String(endDate.getHours()).padStart(2, '0') + ':' + 
+                              String(endDate.getMinutes()).padStart(2, '0');
+                            
+                            setNewAlert({
+                              ...initialNewAlert,
+                              startOn: currentTime,
+                              endOn: endTime
+                            });
+                            setIsModalOpen(true);
+                          }}
+                          className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-5 py-2.5 rounded-xl hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2 font-medium text-sm w-full justify-center lg:w-auto"
+                        >
+                          <i className="fas fa-plus"></i>
+                          New Alert
+                        </button>
                       </div>
                     </div>
                   </div>
-                ))}
+                </div>
+
+                {/* IMPROVED Alerts List with Enhanced Border Design */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm overflow-hidden">
+                  {filteredAlerts.length === 0 ? (
+                    <div className="text-center py-16">
+                      <div className="inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 p-4 mb-4">
+                        <i className="fas fa-bell-slash text-2xl text-gray-400"></i>
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No alerts found</h3>
+                      <p className="text-gray-500 dark:text-gray-400">Try changing your search or filter parameters</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                      {filteredAlerts.map(alert => (
+                        <div 
+                          key={alert.id} 
+                          className="p-6 hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-all duration-300"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-start">
+                                <div className={`rounded-xl p-3 mr-4 ${getTypeColor(alert.type)} shadow-sm`}>
+                                  <i className={`${getTypeIcon(alert.type)} text-lg`}></i>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{alert.title}</h3>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center shadow-sm ${
+                                        alert.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 border border-green-200 dark:border-green-800' :
+                                        alert.status === 'Sent' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border border-blue-200 dark:border-blue-800' :
+                                        'bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-200 border border-gray-200 dark:border-gray-800'
+                                      }`}>
+                                        <i className={`${getStatusIcon(alert.status)} mr-1 text-xs`}></i>
+                                        {alert.status}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <p className="text-gray-700 dark:text-gray-300 mt-2 mb-4 leading-relaxed">{alert.message}</p>
+                                  
+                                  <div className="flex flex-wrap items-center text-sm text-gray-500 dark:text-gray-400 gap-4">
+                                    <span className="inline-flex items-center bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-lg">
+                                      <i className="fas fa-calendar-alt mr-2 text-xs"></i>
+                                      {alert.date}
+                                    </span>
+                                    <span className="inline-flex items-center bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-lg">
+                                      <i className="fas fa-users mr-2 text-xs"></i>
+                                      {alert.targetAudience === 'all' ? 'All Users' : 
+                                        alert.targetAudience === 'travelers' ? 'Travelers Only' : 'Tour Guides Only'}
+                                    </span>
+                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-medium shadow-sm border ${
+                                      alert.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200 border-red-200 dark:border-red-800' :
+                                      alert.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800' :
+                                      'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border-blue-200 dark:border-blue-800'
+                                    }`}>
+                                      {getPriorityBadge(alert.priority).text} Priority
+                                    </span>
+                                    
+                                    {/* Locations display */}
+                                    {alert.locations && alert.locations.length > 0 && (
+                                      <span className="inline-flex items-center bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-lg">
+                                        <i className="fas fa-map-marker-alt mr-2 text-xs"></i>
+                                        {alert.locations.length} location{alert.locations.length > 1 ? 's' : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end space-y-2 ml-4">
+                              <div className="flex space-x-1">
+                                <button
+                                  aria-label={`Edit alert ${alert.title}`}
+                                  onClick={(e) => { e.stopPropagation(); handleEditAlert(alert); }}
+                                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded-lg transition-colors border border-transparent hover:border-cyan-200 dark:hover:border-cyan-800"
+                                >
+                                  <i className="fas fa-edit"></i>
+                                </button>
+                                <button
+                                  aria-label={`Delete alert ${alert.title}`}
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteAlert(alert.id); }}
+                                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors border border-transparent hover:border-red-200 dark:hover:border-red-800"
+                                >
+                                  <i className="fas fa-trash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'emergency' && (
+              <div className="bg-white dark:bg-gray-800">
+                {/* Disaster Monitoring content - KEEP ORIGINAL DESIGN */}
+                {loading ? (
+                  <div className="flex justify-center items-center h-64 text-gray-900 dark:text-white">Loading alerts...</div>
+                ) : (
+                  <>
+                    {/* Active Alerts Section */}
+                    <div className="mb-8">
+                      <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-medium text-gray-900 dark:text-white">Active Disaster Alerts</h2>
+                        <span className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                          {activeAlerts.length} Active
+                        </span>
+                      </div>
+                      
+                      {activeAlerts.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {activeAlerts.map(alert => (
+                            <div key={alert.id} className="bg-red-50 border border-red-200 dark:bg-red-900/30 dark:border-red-700 rounded-lg p-4">
+                              <div className="flex justify-between items-start mb-3">
+                                <h3 className="font-medium text-red-800 dark:text-red-200">Emergency Alert #{alert.id}</h3>
+                                <SeverityBadge severity={alert.severity} />
+                              </div>
+                              
+                              <div className="space-y-2 text-sm">
+                                <div>
+                                  <span className="text-red-600 dark:text-red-400 font-medium">User: </span>
+                                  {alert.userName}
+                                </div>
+                                <div>
+                                  <span className="text-red-600 dark:text-red-400 font-medium">Type: </span>
+                                  {alert.type}
+                                </div>
+                                <div>
+                                  <span className="text-red-600 dark:text-red-400 font-medium">Location: </span>
+                                  {alert.location}
+                                </div>
+                                <div>
+                                  <span className="text-red-600 dark:text-red-400 font-medium">Time: </span>
+                                  {new Date(alert.timestamp).toLocaleString()}
+                                </div>
+                                {alert.servicesNotified && (
+                                  <div className="text-green-600 dark:text-green-400">
+                                    <span className="font-medium">Services Notified: </span>
+                                    {new Date(alert.notifiedAt).toLocaleTimeString()}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="mt-4 flex space-x-2">
+                                <button 
+                                  className="bg-red-600 text-white px-3 py-1 rounded-md text-sm hover:bg-red-700 flex items-center"
+                                  onClick={() => handleNotifyServices(alert.id)}
+                                  disabled={alert.servicesNotified}
+                                >
+                                  <span className="fas fa-bell mr-1"></span>
+                                  {alert.servicesNotified ? "Notified" : "Notify Services"}
+                                </button>
+                                <button 
+                                  className="bg-white text-red-600 border border-red-300 dark:bg-gray-800 dark:text-red-400 dark:border-red-600 px-3 py-1 rounded-md text-sm hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center"
+                                  onClick={() => handleResolveAlert(alert.id)}
+                                >
+                                  <span className="fas fa-check-circle mr-1"></span>
+                                  Mark Resolved
+                                </button>
+                                <button 
+                                  className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center"
+                                  onClick={() => handleViewDetails(alert)}
+                                >
+                                  <span className="fas fa-info-circle mr-1"></span>
+                                  Details
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-green-50 border border-green-200 dark:bg-green-900/30 dark:border-green-700 rounded-lg p-6 text-center">
+                          <span className="fas fa-check-circle text-green-500 text-4xl mb-3"></span>
+                          <p className="text-green-800 dark:text-green-200 font-medium">No active emergency alerts</p>
+                          <p className="text-green-600 dark:text-green-400 text-sm mt-1">All users are safe</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Alert History Section */}
+                    <div>
+                      <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Alert History</h2>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                          <thead className="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Location</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {alertHistory.map(alert => (
+                              <tr key={alert.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">#{alert.id}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{alert.userName}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{alert.type}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{alert.location}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                  {new Date(alert.timestamp).toLocaleString()}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    alert.status === 'resolved' 
+                                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  }`}>
+                                    {alert.status}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                  <button 
+                                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
+                                    onClick={() => handleViewDetails(alert)}
+                                  >
+                                    View
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {alertHistory.length === 0 && (
+                        <div className="text-center py-8 bg-gray-50 dark:bg-gray-700 rounded-lg mt-4">
+                          <span className="fas fa-history text-gray-400 text-3xl mb-3"></span>
+                          <p className="text-gray-500 dark:text-gray-400">No alert history found</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Emergency Monitoring Tab Content */}
-      {activeTab === 'emergency' && (
-        <div className="p-6 bg-white dark:bg-gray-800">
-          {loading ? (
-            <div className="flex justify-center items-center h-64 text-gray-900 dark:text-white">Loading alerts...</div>
-          ) : (
-            <>
-              {/* Active Alerts Section */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-medium text-gray-900 dark:text-white">Active Emergency Alerts</h2>
-                  <span className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {activeAlerts.length} Active
-                  </span>
-                </div>
-                
-                {activeAlerts.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {activeAlerts.map(alert => (
-                      <div key={alert.id} className="bg-red-50 border border-red-200 dark:bg-red-900/30 dark:border-red-700 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <h3 className="font-medium text-red-800 dark:text-red-200">Emergency Alert #{alert.id}</h3>
-                          <SeverityBadge severity={alert.severity} />
-                        </div>
-                        
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            <span className="text-red-600 dark:text-red-400 font-medium">User: </span>
-                            {alert.userName}
-                          </div>
-                          <div>
-                            <span className="text-red-600 dark:text-red-400 font-medium">Type: </span>
-                            {alert.type}
-                          </div>
-                          <div>
-                            <span className="text-red-600 dark:text-red-400 font-medium">Location: </span>
-                            {alert.location}
-                          </div>
-                          <div>
-                            <span className="text-red-600 dark:text-red-400 font-medium">Time: </span>
-                            {new Date(alert.timestamp).toLocaleString()}
-                          </div>
-                          {alert.servicesNotified && (
-                            <div className="text-green-600 dark:text-green-400">
-                              <span className="font-medium">Services Notified: </span>
-                              {new Date(alert.notifiedAt).toLocaleTimeString()}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-4 flex space-x-2">
-                          <button 
-                            className="bg-red-600 text-white px-3 py-1 rounded-md text-sm hover:bg-red-700 flex items-center"
-                            onClick={() => handleNotifyServices(alert.id)}
-                            disabled={alert.servicesNotified}
-                          >
-                            <span className="fas fa-bell mr-1"></span>
-                            {alert.servicesNotified ? "Notified" : "Notify Services"}
-                          </button>
-                          <button 
-                            className="bg-white text-red-600 border border-red-300 dark:bg-gray-800 dark:text-red-400 dark:border-red-600 px-3 py-1 rounded-md text-sm hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center"
-                            onClick={() => handleResolveAlert(alert.id)}
-                          >
-                            <span className="fas fa-check-circle mr-1"></span>
-                            Mark Resolved
-                          </button>
-                          <button 
-                            className="bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 px-3 py-1 rounded-md text-sm hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center"
-                            onClick={() => handleViewDetails(alert)}
-                          >
-                            <span className="fas fa-info-circle mr-1"></span>
-                            Details
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-green-50 border border-green-200 dark:bg-green-900/30 dark:border-green-700 rounded-lg p-6 text-center">
-                    <span className="fas fa-check-circle text-green-500 text-4xl mb-3"></span>
-                    <p className="text-green-800 dark:text-green-200 font-medium">No active emergency alerts</p>
-                    <p className="text-green-600 dark:text-green-400 text-sm mt-1">All users are safe</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Alert History Section */}
-              <div>
-                <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Alert History</h2>
-                
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Location</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                      {alertHistory.map(alert => (
-                        <tr key={alert.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">#{alert.id}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{alert.userName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{alert.type}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{alert.location}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                            {new Date(alert.timestamp).toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              alert.status === 'resolved' 
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                            }`}>
-                              {alert.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button 
-                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
-                              onClick={() => handleViewDetails(alert)}
-                            >
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {alertHistory.length === 0 && (
-                  <div className="text-center py-8 bg-gray-50 dark:bg-gray-700 rounded-lg mt-4">
-                    <span className="fas fa-history text-gray-400 text-3xl mb-3"></span>
-                    <p className="text-gray-500 dark:text-gray-400">No alert history found</p>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* New Alert Modal */}
+      {/* KEEP ALL ORIGINAL MODALS EXACTLY AS THEY WERE */}
+      
+      {/* New Alert Modal - Keep original design */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1123,7 +1162,7 @@ const IntegratedAlertsSystem = () => {
         </div>
       )}
 
-      {/* Alert Details Modal */}
+      {/* Alert Details Modal - Keep original design */}
       {showModal && selectedAlert && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
@@ -1190,7 +1229,7 @@ const IntegratedAlertsSystem = () => {
         </div>
       )}
       
-      {/* Validation / Confirm Modal (used for validation messages and confirmations) */}
+      {/* Validation / Confirm Modal - Keep original design */}
       {validationModal.open && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
@@ -1218,6 +1257,36 @@ const IntegratedAlertsSystem = () => {
       )}
     </div>
   );
+};
+
+// Helper function for emergency type badges
+const getEmergencyTypeBadge = (type) => {
+  const typeConfig = {
+    info: { label: 'Info', bg: 'bg-blue-100 dark:bg-blue-900', text: 'text-blue-800 dark:text-blue-200' },
+    warning: { label: 'Warning', bg: 'bg-yellow-100 dark:bg-yellow-900', text: 'text-yellow-800 dark:text-yellow-200' },
+    success: { label: 'Success', bg: 'bg-green-100 dark:bg-green-900', text: 'text-green-800 dark:text-green-200' },
+    error: { label: 'Emergency', bg: 'bg-red-100 dark:bg-red-900', text: 'text-red-800 dark:text-red-200' },
+  };
+
+  const config = typeConfig[type] || typeConfig.info;
+
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      <i className={`mr-1 ${getTypeIcon(type)}`}></i>
+      {config.label}
+    </span>
+  );
+};
+
+// Helper function for type icons
+const getTypeIcon = (type) => {
+  switch(type) {
+    case 'info': return 'fas fa-info-circle';
+    case 'warning': return 'fas fa-exclamation-triangle';
+    case 'success': return 'fas fa-check-circle';
+    case 'error': return 'fas fa-exclamation-circle';
+    default: return 'fas fa-bell';
+  }
 };
 
 export default IntegratedAlertsSystem;

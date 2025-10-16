@@ -1,39 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import newLogo from '/new-logo.png';
 
 const AdminSidebar = ({ isSidebarOpen, setIsSidebarOpen, adminName = 'Admin', activeSection, navigate, onLogout }) => {
-  const [isDark, setIsDark] = useState(() => {
-    try {
-      return localStorage.getItem('theme') === 'dark';
-    } catch {
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDark]);
-
-  // replace the previous toggleDarkMode with this (keeps state, writes localStorage and notifies other parts)
-  const toggleDarkMode = () => {
-    const newMode = !isDark;
-    setIsDark(newMode);
-
-    try {
-      localStorage.setItem('theme', newMode ? 'dark' : 'light');
-    } catch {}
-
-    // notify other parts of the app (and listeners in main.jsx)
-    window.dispatchEvent(new CustomEvent('theme-change', { detail: { isDark: newMode } }));
-  };
+  
 
   const handleLogout = () => {
     // Clear authentication data
@@ -77,17 +47,7 @@ const AdminSidebar = ({ isSidebarOpen, setIsSidebarOpen, adminName = 'Admin', ac
               </div>
             </div>
 
-            {/* Dark mode toggle */}
-            <button
-              onClick={toggleDarkMode}
-              title="Toggle dark mode"
-              className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ml-2"
-              style={{ fontFamily: 'Poppins, sans-serif' }}
-            >
-              <span className="material-icons text-lg">
-                {isDark ? 'light_mode' : 'dark_mode'}
-              </span>
-            </button>
+            
           </div>
         </div>
 
