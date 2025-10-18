@@ -181,26 +181,6 @@ const Login = ({ onLoginSuccess }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 to-gray-100 dark:from-slate-900 dark:to-gray-900 p-4">
       <div className="w-full max-w-md">
-        {/* Top-right theme toggle */}
-        <div className="flex justify-end mb-2">
-          <button
-            onClick={toggleDarkMode}
-            aria-label="Toggle dark mode"
-            className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-white/70 dark:bg-gray-800/70 hover:bg-white dark:hover:bg-gray-700 shadow-sm focus:outline-none"
-            title={darkMode ? 'Switch to light' : 'Switch to dark'}
-          >
-            {darkMode ? (
-              <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 2a.75.75 0 01.75.75V4a.75.75 0 01-1.5 0V2.75A.75.75 0 0110 2zM4.22 4.22a.75.75 0 011.06 0l.885.885a.75.75 0 11-1.06 1.06L4.22 5.28a.75.75 0 010-1.06zM2 10a.75.75 0 01.75-.75H4a.75.75 0 010 1.5H2.75A.75.75 0 012 10zm8 8a.75.75 0 01-.75-.75V16a.75.75 0 011.5 0v1.25c0 .414-.336.75-.75.75zM15.78 15.78a.75.75 0 010-1.06l.885-.885a.75.75 0 011.06 1.06l-.885.885a.75.75 0 01-1.06 0zM16 10a.75.75 0 01.75-.75H18a.75.75 0 010 1.5h-1.25A.75.75 0 0116 10zM10 6.5A3.5 3.5 0 1010 13.5 3.5 3.5 0 0010 6.5z" />
-              </svg>
-            ) : (
-              <svg className="h-5 w-5 text-gray-700" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17.293 13.293A8 8 0 116.707 2.707 6 6 0 1017.293 13.293z" />
-              </svg>
-            )}
-          </button>
-        </div>
-
         {/* Logo & Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -219,7 +199,27 @@ const Login = ({ onLoginSuccess }) => {
         </div>
 
         {/* Login Form */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 relative">
+          {/* Dark mode toggle inside the main border - top right */}
+          <div className="absolute top-4 right-4">
+            <button
+              onClick={toggleDarkMode}
+              aria-label="Toggle dark mode"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-white/70 dark:bg-gray-800/70 hover:bg-white dark:hover:bg-gray-700 shadow-sm focus:outline-none border border-gray-200 dark:border-gray-600"
+              title={darkMode ? 'Switch to light' : 'Switch to dark'}
+            >
+              {darkMode ? (
+                <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 2a.75.75 0 01.75.75V4a.75.75 0 01-1.5 0V2.75A.75.75 0 0110 2zM4.22 4.22a.75.75 0 011.06 0l.885.885a.75.75 0 11-1.06 1.06L4.22 5.28a.75.75 0 010-1.06zM2 10a.75.75 0 01.75-.75H4a.75.75 0 010 1.5H2.75A.75.75 0 012 10zm8 8a.75.75 0 01-.75-.75V16a.75.75 0 011.5 0v1.25c0 .414-.336.75-.75.75zM15.78 15.78a.75.75 0 010-1.06l.885-.885a.75.75 0 011.06 1.06l-.885.885a.75.75 0 01-1.06 0zM16 10a.75.75 0 01.75-.75H18a.75.75 0 010 1.5h-1.25A.75.75 0 0116 10zM10 6.5A3.5 3.5 0 1010 13.5 3.5 3.5 0 0010 6.5z" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5 text-gray-700" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.293 13.293A8 8 0 116.707 2.707 6 6 0 1017.293 13.293z" />
+                </svg>
+              )}
+            </button>
+          </div>
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/60 text-red-700 dark:text-red-200 rounded-lg text-sm">
               <div className="flex items-center">

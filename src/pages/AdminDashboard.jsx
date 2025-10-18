@@ -8,6 +8,7 @@ import EmergencyMonitoring from './EmergencyMonitoring.jsx';
 import AnalyticsDashboard from './AnalyticsDashboard.jsx';
 import RevenueManagement from './RevenueManagement.jsx';
 import ProfileSections from './ProfileSection.jsx';
+import { logLogin } from '../utils/adminActivityLogger';
 
 const AdminDashboard = ({ onLogout }) => {
   const [adminName, setAdminName] = useState('Admin');
@@ -47,6 +48,9 @@ const AdminDashboard = ({ onLogout }) => {
         const updatedUserData = await response.json();
         localStorage.setItem('user', JSON.stringify(updatedUserData.user));
         setAdminName(updatedUserData.user.fname || 'Admin');
+        
+        // Log admin login
+        logLogin();
         
       } catch (error) {
         console.error('Authentication check failed:', error);

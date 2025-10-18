@@ -17,27 +17,20 @@ const RevenueManagement = () => {
   const [userSubscriptions, setUserSubscriptions] = useState([]);
   const [agencySubscriptions, setAgencySubscriptions] = useState([]);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
-  const [showUserSubscriptionModal, setShowUserSubscriptionModal] = useState(false);
-  const [showAgencySubscriptionModal, setShowAgencySubscriptionModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [newTransaction, setNewTransaction] = useState({
     agencyName: '',
     amount: '',
     paymentMethod: 'PayMongo',
     status: 'pending'
   });
-  const [newUserSubscription, setNewUserSubscription] = useState({
+  const [newSubscription, setNewSubscription] = useState({
     name: '',
     price: '',
     duration: 'monthly',
     features: '',
-    status: 'active'
-  });
-  const [newAgencySubscription, setNewAgencySubscription] = useState({
-    name: '',
-    price: '',
-    duration: 'monthly',
-    features: '',
-    status: 'active'
+    status: 'active',
+    type: 'user' // Default to user subscription
   });
 
   // Filter states matching alerts design
@@ -323,56 +316,41 @@ const RevenueManagement = () => {
     });
   };
 
-  const handleAddUserSubscription = () => {
-    const newId = userSubscriptions.length > 0 ? Math.max(...userSubscriptions.map(s => s.id)) + 1 : 1;
+  const handleAddSubscription = () => {
+    const newId = getAllSubscriptions().length > 0 ? Math.max(...getAllSubscriptions().map(s => s.id)) + 1 : 1;
     const subscription = {
-      ...newUserSubscription,
+      ...newSubscription,
       id: newId,
-      subscribers: 0,
-      type: "user"
+      subscribers: 0
     };
     
-    setUserSubscriptions([...userSubscriptions, subscription]);
-    setShowUserSubscriptionModal(false);
-    setNewUserSubscription({
+    if (newSubscription.type === 'user') {
+      setUserSubscriptions([...userSubscriptions, subscription]);
+    } else {
+      setAgencySubscriptions([...agencySubscriptions, subscription]);
+    }
+    
+    setShowSubscriptionModal(false);
+    setNewSubscription({
       name: '',
       price: '',
       duration: 'monthly',
       features: '',
-      status: 'active'
+      status: 'active',
+      type: 'user'
     });
   };
 
-  const handleAddAgencySubscription = () => {
-    const newId = agencySubscriptions.length > 0 ? Math.max(...agencySubscriptions.map(s => s.id)) + 1 : 1;
-    const subscription = {
-      ...newAgencySubscription,
-      id: newId,
-      subscribers: 0,
-      type: "agency"
-    };
-    
-    setAgencySubscriptions([...agencySubscriptions, subscription]);
-    setShowAgencySubscriptionModal(false);
-    setNewAgencySubscription({
-      name: '',
-      price: '',
-      duration: 'monthly',
-      features: '',
-      status: 'active'
-    });
-  };
-
-  const handleUpdateUserSubscriptionStatus = (id, status) => {
-    setUserSubscriptions(userSubscriptions.map(plan => 
-      plan.id === id ? {...plan, status} : plan
-    ));
-  };
-
-  const handleUpdateAgencySubscriptionStatus = (id, status) => {
-    setAgencySubscriptions(agencySubscriptions.map(plan => 
-      plan.id === id ? {...plan, status} : plan
-    ));
+  const handleUpdateSubscriptionStatus = (id, type, status) => {
+    if (type === 'user') {
+      setUserSubscriptions(userSubscriptions.map(plan => 
+        plan.id === id ? {...plan, status} : plan
+      ));
+    } else {
+      setAgencySubscriptions(agencySubscriptions.map(plan => 
+        plan.id === id ? {...plan, status} : plan
+      ));
+    }
   };
 
   const handleUpdateTransactionStatus = (id, status) => {
@@ -410,6 +388,11 @@ const RevenueManagement = () => {
       message: `Commission ${commissionId} processed successfully`,
       type: 'success'
     });
+  };
+
+  // Helper function to get all subscriptions combined
+  const getAllSubscriptions = () => {
+    return [...userSubscriptions, ...agencySubscriptions];
   };
 
   const calculateMetrics = () => {
@@ -550,8 +533,7 @@ const RevenueManagement = () => {
                 { id: 'agency-commissions', label: 'Agency Commissions'},
                 { id: 'ad-revenue', label: 'Ad Revenue' },
                 { id: 'transactions', label: 'Transactions' },
-                { id: 'user-subscriptions', label: 'User Subscriptions' },
-                { id: 'agency-subscriptions', label: 'Agency Subscriptions' }
+                { id: 'subscriptions', label: 'Subscriptions' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -892,36 +874,23 @@ const RevenueManagement = () => {
                   </div>
 
                   <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Sources</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Payment Method Details</h3>
                     <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                          <span className="text-gray-700 dark:text-gray-300">Agency Commissions</span>
+                      {paymentMethodData.map((method, index) => (
+                        <div key={method.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <div className="flex items-center">
+                            <div 
+                              className="w-3 h-3 rounded-full mr-3"
+                              style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                            ></div>
+                            <span className="font-medium text-gray-900 dark:text-white">{method.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-gray-900 dark:text-white">₱{method.value.toLocaleString()}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{method.count} transactions</p>
+                          </div>
                         </div>
-                        <span className="font-semibold text-gray-900 dark:text-white">₱{metrics.totalCommissions.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 bg-cyan-500 rounded-full mr-3"></div>
-                          <span className="text-gray-700 dark:text-gray-300">Advertising</span>
-                        </div>
-                        <span className="font-semibold text-gray-900 dark:text-white">₱{metrics.totalAdRevenue.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                          <span className="text-gray-700 dark:text-gray-300">User Subscriptions</span>
-                        </div>
-                        <span className="font-semibold text-gray-900 dark:text-white">₱12,450</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
-                          <span className="text-gray-700 dark:text-gray-300">Agency Subscriptions</span>
-                        </div>
-                        <span className="font-semibold text-gray-900 dark:text-white">₱8,750</span>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -931,148 +900,120 @@ const RevenueManagement = () => {
             {/* Agency Commissions Tab */}
             {activeTab === 'agency-commissions' && (
               <div className="space-y-6">
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Agency Commissions</h3>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => exportData('commissions')}
-                          className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                        >
-                          Export
-                        </button>
-                      </div>
-                    </div>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Agency Commission Tracking</h3>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => exportData('commissions')}
+                      className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                    >
+                      Export
+                    </button>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agency</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transaction ID</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Commission</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                        {agencyCommissions.length === 0 ? (
+                </div>
+
+                {agencyCommissions.length === 0 ? (
+                  <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <i className="fas fa-handshake text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Commission Tracking Coming Soon</h3>
+                    <p className="text-gray-500 dark:text-gray-400">Agency commission tracking will be available in the next update.</p>
+                  </div>
+                ) : (
+                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
                           <tr>
-                            <td colSpan="7" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                              <div className="flex flex-col items-center">
-                                <i className="fas fa-chart-bar text-4xl text-gray-300 dark:text-gray-600 mb-3"></i>
-                                <p className="text-lg font-medium mb-1">No Commission Data</p>
-                                <p className="text-sm">Commission data will appear here once available</p>
-                              </div>
-                            </td>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Agency</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Transaction</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Commission</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                           </tr>
-                        ) : (
-                          agencyCommissions.map((commission) => (
-                            <tr key={commission.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {agencyCommissions.map((commission) => (
+                            <tr key={commission.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{commission.agencyName}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{commission.transactionId}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">₱{commission.amount.toLocaleString()}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">₱{commission.commission.toLocaleString()}</td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900 dark:text-white">{commission.agencyName}</div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-gray-500 dark:text-gray-400">{commission.transactionId}</div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-gray-900 dark:text-white">₱{commission.amount.toLocaleString()}</div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm font-medium text-cyan-600 dark:text-cyan-400">₱{commission.commission.toLocaleString()}</div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  commission.status === 'processed' 
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  commission.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                  commission.status === 'processed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                  'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                                 }`}>
                                   {commission.status}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {commission.date}
-                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{commission.date}</td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                {commission.status !== 'processed' && (
+                                {commission.status === 'pending' && (
                                   <button
                                     onClick={() => handleProcessCommission(commission.id)}
-                                    className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 font-medium"
+                                    className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 font-medium"
                                   >
                                     Process
                                   </button>
                                 )}
                               </td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
             {/* Ad Revenue Tab */}
             {activeTab === 'ad-revenue' && (
               <div className="space-y-6">
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Advertising Revenue</h3>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => exportData('adrevenue')}
-                          className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                        >
-                          Export
-                        </button>
-                      </div>
-                    </div>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Advertising Revenue</h3>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => exportData('adrevenue')}
+                      className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                    >
+                      Export
+                    </button>
                   </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Advertiser</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Campaign</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Impressions</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Clicks</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">CTR</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Revenue</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Period</th>
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Advertiser</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Campaign</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Impressions</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Clicks</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">CTR</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Revenue</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Period</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {adRevenue.map((ad) => (
-                          <tr key={ad.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                          <tr key={ad.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{ad.advertiser}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{ad.campaign}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{ad.impressions.toLocaleString()}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{ad.clicks.toLocaleString()}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{ad.ctr}%</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">₱{ad.revenue.toLocaleString()}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">{ad.advertiser}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-900 dark:text-white">{ad.campaign}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{ad.impressions.toLocaleString()}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{ad.clicks.toLocaleString()}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">{ad.ctr}%</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-green-600 dark:text-green-400">₱{ad.revenue.toLocaleString()}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                ad.status === 'active' 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                ad.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                ad.status === 'completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                                'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
                               }`}>
                                 {ad.status}
                               </span>
@@ -1092,82 +1033,58 @@ const RevenueManagement = () => {
             {/* Transactions Tab */}
             {activeTab === 'transactions' && (
               <div className="space-y-6">
+                
+
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Payment Transactions</h3>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => setShowTransactionModal(true)}
-                          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg text-sm hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                        >
-                          <i className="fas fa-plus"></i>
-                          Add Transaction
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agency</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transaction ID</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment Method</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Transaction ID</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Agency/Customer</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Payment Method</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {transactions.map((transaction) => (
-                          <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                          <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{transaction.transactionId}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                              <div>{transaction.agencyName}</div>
+                              <div className="text-gray-500 dark:text-gray-400 text-xs">{transaction.customerEmail}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">₱{transaction.amount.toLocaleString()}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 capitalize">{transaction.type}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{transaction.paymentMethod}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">{transaction.agencyName}</div>
+                              <select
+                                value={transaction.status}
+                                onChange={(e) => handleUpdateTransactionStatus(transaction.id, e.target.value)}
+                                className={`text-xs font-semibold rounded-full px-2 py-1 border-0 focus:ring-2 focus:ring-cyan-500 ${
+                                  transaction.status === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                  transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                                  transaction.status === 'refunded' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                  'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                }`}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="completed">Completed</option>
+                                <option value="refunded">Refunded</option>
+                              </select>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{transaction.transactionId}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">₱{transaction.amount.toLocaleString()}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{transaction.paymentMethod}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                transaction.status === 'completed' 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                  : transaction.status === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                              }`}>
-                                {transaction.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {transaction.date}
-                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{transaction.date}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <div className="flex gap-2">
-                                {transaction.status !== 'completed' && (
-                                  <button
-                                    onClick={() => handleUpdateTransactionStatus(transaction.id, 'completed')}
-                                    className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium text-xs"
-                                  >
-                                    Complete
-                                  </button>
-                                )}
-                                {transaction.status !== 'refunded' && (
-                                  <button
-                                    onClick={() => handleUpdateTransactionStatus(transaction.id, 'refunded')}
-                                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium text-xs"
-                                  >
-                                    Refund
-                                  </button>
-                                )}
-                              </div>
+                              <button className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 font-medium mr-3">
+                                View
+                              </button>
+                              <button className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium">
+                                Delete
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1178,168 +1095,74 @@ const RevenueManagement = () => {
               </div>
             )}
 
-            {/* User Subscriptions Tab */}
-            {activeTab === 'user-subscriptions' && (
+            {/* Subscriptions Tab - Unified Table */}
+            {activeTab === 'subscriptions' && (
               <div className="space-y-6">
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">User Subscription Plans</h3>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => setShowUserSubscriptionModal(true)}
-                          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg text-sm hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                        >
-                          <i className="fas fa-plus"></i>
-                          Add Plan
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Plan Name</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Duration</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subscribers</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Features</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                        {userSubscriptions.map((plan) => (
-                          <tr key={plan.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">{plan.name}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">₱{plan.price.toLocaleString()}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">{plan.duration}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{plan.subscribers}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">{plan.features}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                plan.status === 'active' 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
-                              }`}>
-                                {plan.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <div className="flex gap-2">
-                                {plan.status === 'active' ? (
-                                  <button
-                                    onClick={() => handleUpdateUserSubscriptionStatus(plan.id, 'inactive')}
-                                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium text-xs"
-                                  >
-                                    Deactivate
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleUpdateUserSubscriptionStatus(plan.id, 'active')}
-                                    className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium text-xs"
-                                  >
-                                    Activate
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Subscription Plans</h3>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowSubscriptionModal(true)}
+                      className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                    >
+                      <i className="fas fa-plus"></i>
+                      Add Plan
+                    </button>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* Agency Subscriptions Tab */}
-            {activeTab === 'agency-subscriptions' && (
-              <div className="space-y-6">
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Agency Subscription Plans</h3>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => setShowAgencySubscriptionModal(true)}
-                          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg text-sm hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                        >
-                          <i className="fas fa-plus"></i>
-                          Add Plan
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Plan Name</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Duration</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subscribers</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Features</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                      <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Plan Name</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Duration</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Subscribers</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Features</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                        {agencySubscriptions.map((plan) => (
-                          <tr key={plan.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {getAllSubscriptions().map((plan) => (
+                          <tr key={`${plan.type}-${plan.id}`} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{plan.name}</td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">{plan.name}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">₱{plan.price.toLocaleString()}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">{plan.duration}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500 dark:text-gray-400">{plan.subscribers}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">{plan.features}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                plan.status === 'active' 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize ${
+                                plan.type === 'user' 
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                  : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                               }`}>
-                                {plan.status}
+                                {plan.type}
                               </span>
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">₱{plan.price.toLocaleString()}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 capitalize">{plan.duration}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{plan.subscribers}</td>
+                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">{plan.features}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <select
+                                value={plan.status}
+                                onChange={(e) => handleUpdateSubscriptionStatus(plan.id, plan.type, e.target.value)}
+                                className={`text-xs font-semibold rounded-full px-2 py-1 border-0 focus:ring-2 focus:ring-cyan-500 ${
+                                  plan.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                  'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                }`}
+                              >
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                              </select>
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <div className="flex gap-2">
-                                {plan.status === 'active' ? (
-                                  <button
-                                    onClick={() => handleUpdateAgencySubscriptionStatus(plan.id, 'inactive')}
-                                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium text-xs"
-                                  >
-                                    Deactivate
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleUpdateAgencySubscriptionStatus(plan.id, 'active')}
-                                    className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium text-xs"
-                                  >
-                                    Activate
-                                  </button>
-                                )}
-                              </div>
+                              <button className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 font-medium mr-3">
+                                Edit
+                              </button>
+                              <button className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium">
+                                Delete
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1357,44 +1180,34 @@ const RevenueManagement = () => {
       {showRateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Commission Rate Settings</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Update Commission Rate</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Commission Rate (%)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(parseFloat(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowRateModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
               >
-                <i className="fas fa-times"></i>
+                Cancel
               </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Commission Rate (%)
-                </label>
-                <input
-                  type="number"
-                  value={commissionRate}
-                  onChange={(e) => setCommissionRate(parseFloat(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  onClick={() => setShowRateModal(false)}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateCommissionRate}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
-                >
-                  Update Rate
-                </button>
-              </div>
+              <button
+                onClick={handleUpdateCommissionRate}
+                className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+              >
+                Update Rate
+              </button>
             </div>
           </div>
         </div>
@@ -1404,26 +1217,17 @@ const RevenueManagement = () => {
       {showTransactionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Add New Transaction</h3>
-              <button
-                onClick={() => setShowTransactionModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add New Transaction</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Agency Name
+                  Agency/Customer Name
                 </label>
                 <input
                   type="text"
                   value={newTransaction.agencyName}
                   onChange={(e) => setNewTransaction({...newTransaction, agencyName: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter agency name"
                 />
               </div>
               <div>
@@ -1433,9 +1237,8 @@ const RevenueManagement = () => {
                 <input
                   type="number"
                   value={newTransaction.amount}
-                  onChange={(e) => setNewTransaction({...newTransaction, amount: parseFloat(e.target.value)})}
+                  onChange={(e) => setNewTransaction({...newTransaction, amount: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter amount"
                 />
               </div>
               <div>
@@ -1467,38 +1270,30 @@ const RevenueManagement = () => {
                   <option value="refunded">Refunded</option>
                 </select>
               </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  onClick={() => setShowTransactionModal(false)}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddTransaction}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
-                >
-                  Add Transaction
-                </button>
-              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowTransactionModal(false)}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddTransaction}
+                className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+              >
+                Add Transaction
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add User Subscription Modal */}
-      {showUserSubscriptionModal && (
+      {/* Add Subscription Modal */}
+      {showSubscriptionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Add User Subscription Plan</h3>
-              <button
-                onClick={() => setShowUserSubscriptionModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add New Subscription Plan</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1506,11 +1301,23 @@ const RevenueManagement = () => {
                 </label>
                 <input
                   type="text"
-                  value={newUserSubscription.name}
-                  onChange={(e) => setNewUserSubscription({...newUserSubscription, name: e.target.value})}
+                  value={newSubscription.name}
+                  onChange={(e) => setNewSubscription({...newSubscription, name: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter plan name"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Plan Type
+                </label>
+                <select
+                  value={newSubscription.type}
+                  onChange={(e) => setNewSubscription({...newSubscription, type: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="user">User Subscription</option>
+                  <option value="agency">Agency Subscription</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1518,10 +1325,9 @@ const RevenueManagement = () => {
                 </label>
                 <input
                   type="number"
-                  value={newUserSubscription.price}
-                  onChange={(e) => setNewUserSubscription({...newUserSubscription, price: parseFloat(e.target.value)})}
+                  value={newSubscription.price}
+                  onChange={(e) => setNewSubscription({...newSubscription, price: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter price"
                 />
               </div>
               <div>
@@ -1529,8 +1335,8 @@ const RevenueManagement = () => {
                   Duration
                 </label>
                 <select
-                  value={newUserSubscription.duration}
-                  onChange={(e) => setNewUserSubscription({...newUserSubscription, duration: e.target.value})}
+                  value={newSubscription.duration}
+                  onChange={(e) => setNewSubscription({...newSubscription, duration: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="monthly">Monthly</option>
@@ -1542,109 +1348,39 @@ const RevenueManagement = () => {
                   Features
                 </label>
                 <textarea
-                  value={newUserSubscription.features}
-                  onChange={(e) => setNewUserSubscription({...newUserSubscription, features: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter features (comma separated)"
+                  value={newSubscription.features}
+                  onChange={(e) => setNewSubscription({...newSubscription, features: e.target.value})}
                   rows="3"
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  onClick={() => setShowUserSubscriptionModal(false)}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddUserSubscription}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
-                >
-                  Add Plan
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Agency Subscription Modal */}
-      {showAgencySubscriptionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Add Agency Subscription Plan</h3>
-              <button
-                onClick={() => setShowAgencySubscriptionModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Plan Name
-                </label>
-                <input
-                  type="text"
-                  value={newAgencySubscription.name}
-                  onChange={(e) => setNewAgencySubscription({...newAgencySubscription, name: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter plan name"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Price
-                </label>
-                <input
-                  type="number"
-                  value={newAgencySubscription.price}
-                  onChange={(e) => setNewAgencySubscription({...newAgencySubscription, price: parseFloat(e.target.value)})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter price"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Duration
+                  Status
                 </label>
                 <select
-                  value={newAgencySubscription.duration}
-                  onChange={(e) => setNewAgencySubscription({...newAgencySubscription, duration: e.target.value})}
+                  value={newSubscription.status}
+                  onChange={(e) => setNewSubscription({...newSubscription, status: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Features
-                </label>
-                <textarea
-                  value={newAgencySubscription.features}
-                  onChange={(e) => setNewAgencySubscription({...newAgencySubscription, features: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Enter features (comma separated)"
-                  rows="3"
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  onClick={() => setShowAgencySubscriptionModal(false)}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAddAgencySubscription}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
-                >
-                  Add Plan
-                </button>
-              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowSubscriptionModal(false)}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddSubscription}
+                className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+              >
+                Add Plan
+              </button>
             </div>
           </div>
         </div>
@@ -1653,34 +1389,26 @@ const RevenueManagement = () => {
       {/* Validation Modal */}
       {validationModal.open && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-sm w-full p-6">
-            <div className="text-center">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                validationModal.type === 'success' ? 'bg-green-100 dark:bg-green-900/30' :
-                validationModal.type === 'error' ? 'bg-red-100 dark:bg-red-900/30' :
-                'bg-cyan-100 dark:bg-cyan-900/30'
-              }`}>
-                <i className={`fas ${
-                  validationModal.type === 'success' ? 'fa-check text-green-600 dark:text-green-400' :
-                  validationModal.type === 'error' ? 'fa-exclamation-triangle text-red-600 dark:text-red-400' :
-                  'fa-info-circle text-cyan-600 dark:text-cyan-400'
-                }`}></i>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                {validationModal.title}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-6">
-                {validationModal.message}
-              </p>
-              <div className="flex justify-center gap-3">
-                <button
-                  onClick={closeValidation}
-                  className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
-                >
-                  OK
-                </button>
-              </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-sm w-full p-6 text-center">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              validationModal.type === 'success' ? 'bg-green-100 dark:bg-green-900/30' :
+              validationModal.type === 'error' ? 'bg-red-100 dark:bg-red-900/30' :
+              'bg-blue-100 dark:bg-blue-900/30'
+            }`}>
+              <i className={`fas ${
+                validationModal.type === 'success' ? 'fa-check text-green-600 dark:text-green-400' :
+                validationModal.type === 'error' ? 'fa-times text-red-600 dark:text-red-400' :
+                'fa-info text-blue-600 dark:text-blue-400'
+              }`}></i>
             </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{validationModal.title}</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{validationModal.message}</p>
+            <button
+              onClick={closeValidation}
+              className="w-full px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
