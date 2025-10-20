@@ -1,7 +1,37 @@
 // ProfileSection.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logPasswordChange } from '../utils/adminActivityLogger';
+
+// Firebase SDK (modular) imports
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, collection, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+
+// Initialize Firebase (safe — will not re-init if already initialized)
+// Provide config via environment variables (REACT_APP_*) or a window.__FIREBASE_CONFIG__ object.
+let firebaseDB = null;
+try {
+  const firebaseConfig = {
+  apiKey: "AIzaSyCn20TvjC98ePXmOEQiJySSq2QN2p0QuRg",
+  authDomain: "taralets-3adb8.firebaseapp.com",
+  projectId: "taralets-3adb8",
+  storageBucket: "taralets-3adb8.firebasestorage.app",
+  messagingSenderId: "353174524186",
+  appId: "1:353174524186:web:45cf6ee4f8878bc0df9ca3"
+};
+
+  // Only initialize when projectId (minimal required) is present
+  if (firebaseConfig && firebaseConfig.projectId) {
+    if (!getApps().length) {
+      initializeApp(firebaseConfig);
+    }
+    firebaseDB = getFirestore();
+  } else {
+    console.warn('Firebase config not found. adminlogs fetch will be disabled.');
+  }
+} catch (err) {
+  console.warn('Firebase initialization failed:', err);
+}
 
 const ProfileSection = ({ adminName, onLogout }) => {
   const navigate = useNavigate();
@@ -30,7 +60,8 @@ const ProfileSection = ({ adminName, onLogout }) => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [historyError, setHistoryError] = useState('');
-
+  const historyListenerRef = useRef(null);
+  
   useEffect(() => {
     fetchAdminProfile();
   }, []);
@@ -127,105 +158,176 @@ const ProfileSection = ({ adminName, onLogout }) => {
     fetchAdminProfile(); // Refresh data
   };
 
+  // Modified: fetch login/activity history from Firestore 'adminlogs' collection
+  // keep this as a fallback (manual fetch) — real-time listener implemented below
   const fetchLoginHistory = async () => {
     setIsLoadingHistory(true);
     setHistoryError('');
+    setLoginHistory([]);
+
     try {
-      const accessToken = localStorage.getItem('accessToken');
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      if (!accessToken || !user.email) {
-        setHistoryError('Authentication required');
+      if (!user || (!user.id && !user._id && !user.uid && !user.email)) {
+        setHistoryError('Authenticated user not found');
         return;
       }
 
-      // Fetch admin activity logs
-      console.log('Fetching from:', 'http://localhost:5000/api/admin-activity/my-activities');
-      console.log('Access token:', accessToken ? 'Present' : 'Missing');
-      
-      const response = await fetch('http://localhost:5000/api/admin-activity/my-activities', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.log('Error response:', errorData);
-        
-        // If it's a 404 or 500, the endpoint might not exist yet
-        if (response.status === 404 || response.status === 500) {
-          console.log('Endpoint not found or server error, using mock data');
-          // Use mock data for now
-          const mockActivities = [
-            {
-              id: 'mock-1',
-              action: 'User Management',
-              description: 'Banned user for violating community guidelines',
-              timestamp: { seconds: Date.now() / 1000 },
-              type: 'moderation',
-              targetType: 'user',
-              targetID: 'user123'
-            },
-            {
-              id: 'mock-2',
-              action: 'Tour Management',
-              description: 'Approved new tour submission',
-              timestamp: { seconds: (Date.now() - 300000) / 1000 },
-              type: 'approval',
-              targetType: 'tour',
-              targetID: 'tour456'
-            },
-            {
-              id: 'mock-3',
-              action: 'Content Management',
-              description: 'Deleted inappropriate content',
-              timestamp: { seconds: (Date.now() - 600000) / 1000 },
-              type: 'deletion',
-              targetType: 'content',
-              targetID: 'content789'
-            }
-          ];
-          setLoginHistory(mockActivities);
-          return;
-        }
-        
-        throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch activity history`);
+      if (!firebaseDB) {
+        setHistoryError('Firebase not configured. Set REACT_APP_FIREBASE_* env vars or window.__FIREBASE_CONFIG__.');
+        return;
       }
 
-      const data = await response.json();
-      console.log('Activity logs response:', data);
-      
-      // Transform admin activities into activity history
-      const activities = (data.activities || []).map(activity => {
-        console.log('Processing activity:', activity);
-        return {
-          id: activity.id,
-          action: activity.action,
-          description: activity.description,
-          timestamp: activity.timestamp,
-          type: activity.targetType || 'system',
-          targetType: activity.targetType,
-          targetID: activity.targetID,
-          metadata: activity.metadata
-        };
-      });
+      const logsRef = collection(firebaseDB, 'adminlogs');
 
-      console.log('Transformed activities:', activities);
+      // Server-side ordering may require composite index in some projects.
+      // Use simple query and local sort to avoid index requirement.
+      const q = query(logsRef, limit(1000));
+      const snapshot = await getDocs(q);
+
+      const userIds = [user.id, user._id, user.uid].filter(Boolean).map(String);
+      const userEmail = user.email;
+
+      const activities = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(d => {
+          if (!d) return false;
+          if (d.adminId && userIds.includes(String(d.adminId))) return true;
+          if (d.adminId && String(d.adminId) === userEmail) return true;
+          if (d.adminEmail && d.adminEmail === userEmail) return true;
+          if (d.metadata && d.metadata.adminId && userIds.includes(String(d.metadata.adminId))) return true;
+          return false;
+        })
+        .map(data => {
+          // normalize timestamp
+          let ts = null;
+          if (data.timestamp && typeof data.timestamp.seconds === 'number') ts = new Date(data.timestamp.seconds * 1000);
+          else if (data.timestamp && typeof data.timestamp.toDate === 'function') ts = data.timestamp.toDate();
+          else if (data.timestamp instanceof Date) ts = data.timestamp;
+          else if (data.createdAt && typeof data.createdAt.toDate === 'function') ts = data.createdAt.toDate();
+
+          return {
+            id: data.id,
+            action: data.action || 'Action',
+            description: data.description || '',
+            timestamp: ts,
+            rawTimestamp: data.timestamp || data.createdAt || null,
+            type: data.type || 'system',
+            targetType: data.targetType,
+            targetID: data.targetID,
+            metadata: data.metadata
+          };
+        });
+
+      // sort locally by timestamp desc
+      activities.sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0));
+
       setLoginHistory(activities);
     } catch (error) {
-      console.error('Error fetching login history:', error);
+      console.error('Error fetching login history from Firebase:', error);
       setHistoryError(error.message || 'Failed to load activity history');
     } finally {
       setIsLoadingHistory(false);
     }
   };
 
+  // Real-time listener: listens to adminlogs collection and filters client-side.
+  // This captures writes from other parts of the app (no need to change other files).
+  useEffect(() => {
+    if (!showLoginHistory) {
+      // if modal closed, unsubscribe
+      if (historyListenerRef.current) {
+        historyListenerRef.current();
+        historyListenerRef.current = null;
+      }
+      return;
+    }
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user || (!user.id && !user._id && !user.uid && !user.email)) {
+      setHistoryError('Authenticated user not found');
+      setIsLoadingHistory(false);
+      return;
+    }
+
+    if (!firebaseDB) {
+      setHistoryError('Firebase not configured.');
+      setIsLoadingHistory(false);
+      return;
+    }
+
+    setIsLoadingHistory(true);
+    setHistoryError('');
+
+    const logsRef = collection(firebaseDB, 'adminlogs');
+    
+    // Try real-time listener first, fall back to one-time fetch if it fails
+    try {
+      const unsubscribe = onSnapshot(
+        logsRef,
+        (snapshot) => {
+          const userIds = [user.id, user._id, user.uid].filter(Boolean).map(String);
+          const userEmail = user.email;
+
+          const activities = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(d => {
+              if (!d) return false;
+              if (d.adminId && userIds.includes(String(d.adminId))) return true;
+              if (d.adminId && String(d.adminId) === userEmail) return true;
+              if (d.adminEmail && d.adminEmail === userEmail) return true;
+              if (d.metadata && d.metadata.adminId && userIds.includes(String(d.metadata.adminId))) return true;
+              return false;
+            })
+            .map(data => {
+              let ts = null;
+              if (data.timestamp && typeof data.timestamp.seconds === 'number') ts = new Date(data.timestamp.seconds * 1000);
+              else if (data.timestamp && typeof data.timestamp.toDate === 'function') ts = data.timestamp.toDate();
+              else if (data.timestamp instanceof Date) ts = data.timestamp;
+              else if (data.createdAt && typeof data.createdAt.toDate === 'function') ts = data.createdAt.toDate();
+
+              return {
+                id: data.id,
+                action: data.action || 'Action',
+                description: data.description || '',
+                timestamp: ts,
+                rawTimestamp: data.timestamp || data.createdAt || null,
+                type: data.type || 'system',
+                targetType: data.targetType,
+                targetID: data.targetID,
+                metadata: data.metadata
+              };
+            });
+
+          activities.sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0));
+          setLoginHistory(activities);
+          setIsLoadingHistory(false);
+        },
+        (err) => {
+          console.warn('Real-time listener failed, falling back to one-time fetch:', err);
+          // Fall back to one-time fetch if real-time listener fails
+          fetchLoginHistory();
+        }
+      );
+
+      historyListenerRef.current = unsubscribe;
+    } catch (err) {
+      console.warn('Failed to set up real-time listener, using one-time fetch:', err);
+      // Fall back to one-time fetch
+      fetchLoginHistory();
+    }
+
+    return () => {
+      if (historyListenerRef.current) {
+        try {
+          historyListenerRef.current();
+        } catch (err) {
+          console.warn('Error unsubscribing from listener:', err);
+        }
+        historyListenerRef.current = null;
+      }
+    };
+  }, [showLoginHistory]);
+  
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordForm(prev => ({
@@ -312,30 +414,258 @@ const ProfileSection = ({ adminName, onLogout }) => {
     setPasswordError('');
   };
 
-  // Function to log admin activities
-  const logAdminActivity = async (action, description, targetType = null, targetID = null, metadata = null) => {
+  // Function to log admin activities (keeps existing backend log behavior)
+  const logAdminActivity = async (action, description = '', targetType = null, targetID = null, metadata = null) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      if (!accessToken) return;
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // Try to send to backend API (optional - suppress errors if endpoint doesn't exist)
+      if (accessToken) {
+        try {
+          const response = await fetch('http://localhost:5000/api/admin-activity/log', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+              action,
+              description,
+              targetType,
+              targetID,
+              metadata
+            })
+          });
+          
+          // Silently ignore 404 errors (endpoint not implemented yet)
+          if (!response.ok && response.status !== 404) {
+            console.warn('Backend activity log failed:', response.status);
+          }
+        } catch (apiErr) {
+          // Silently ignore backend API errors - Firebase is primary logging system
+        }
+      }
 
-      await fetch('http://localhost:5000/api/admin-activity/log', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          action,
-          description,
-          targetType,
-          targetID,
-          metadata
-        })
-      });
+      // Write to Firestore 'adminlogs' (primary logging system)
+      if (firebaseDB && user && user.id) {
+        try {
+          const logsRef = collection(firebaseDB, 'adminlogs');
+          await addDoc(logsRef, {
+            adminId: user.id,
+            action,
+            description: description || '',
+            targetType: targetType || null,
+            targetID: targetID || null,
+            metadata: metadata || null,
+            timestamp: serverTimestamp()
+          });
+        } catch (fbErr) {
+          // don't block the main flow if Firestore write fails
+          console.error('Firestore adminlogs write failed:', fbErr);
+        }
+      }
     } catch (error) {
       console.error('Failed to log admin activity:', error);
     }
   };
+
+  // expose a global helper so other UI files (edit/delete/warn/ban/etc.) can call this
+  // without modifying other files — call from other modules like: window.logAdminAction({ action, description, targetType, targetID, metadata })
+  try {
+    window.logAdminAction = async ({ action, description = '', targetType = null, targetID = null, metadata = null }) => {
+      await logAdminActivity(action, description, targetType, targetID, metadata);
+    };
+  } catch (e) {
+    // ignore if window isn't available
+  }
+
+  // --- NEW: Patch network calls (fetch + XHR) to auto-log relevant admin actions to Firestore/adminlogs ---
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window._adminLogsNetworkPatched) return;
+    window._adminLogsNetworkPatched = true;
+
+    const safeParseJson = (input) => {
+      try {
+        if (!input) return null;
+        if (typeof input === 'string') return JSON.parse(input);
+        if (input instanceof FormData) {
+          const obj = {};
+          input.forEach((v, k) => { obj[k] = v; });
+          return obj;
+        }
+        return input;
+      } catch {
+        return null;
+      }
+    };
+
+    const determineAction = (urlLower, method, bodyObj) => {
+      // generic mapping: prioritize path hints and body fields
+      if (urlLower.includes('/alerts')) {
+        if (method === 'DELETE') return 'Deleted Alert';
+        if (method === 'POST') return bodyObj?.action === 'create' ? 'Created Alert' : 'Edited Alert';
+        if (method === 'PUT' || method === 'PATCH') return 'Edited Alert';
+      }
+      if (urlLower.includes('/emergenc') || urlLower.includes('/emergency')) {
+        if (method === 'DELETE') return 'Deleted Emergency';
+        if (method === 'POST') return 'Created Emergency';
+        return 'Updated Emergency';
+      }
+      if (urlLower.includes('/users') || urlLower.includes('/user')) {
+        // detect admin user actions
+        if (urlLower.includes('/warn')) return 'Warned User';
+        if (urlLower.includes('/ban')) return 'Banned User';
+        if (method === 'DELETE' || urlLower.includes('/delete')) return 'Deleted User';
+        if (method === 'POST') return 'Updated User';
+        return 'User Action';
+      }
+      return null;
+    };
+
+    const extractTargetId = (url, bodyObj, resJson) => {
+      // try body id, query param id, then response id
+      if (bodyObj && (bodyObj.id || bodyObj._id || bodyObj.alertId || bodyObj.userId || bodyObj.targetId)) {
+        return String(bodyObj.id || bodyObj._id || bodyObj.alertId || bodyObj.userId || bodyObj.targetId);
+      }
+      try {
+        const urlObj = new URL(url, window.location.origin);
+        if (urlObj.searchParams.get('id')) return urlObj.searchParams.get('id');
+        if (urlObj.searchParams.get('alertId')) return urlObj.searchParams.get('alertId');
+        if (urlObj.searchParams.get('userId')) return urlObj.searchParams.get('userId');
+      } catch {}
+      if (resJson && (resJson.id || resJson._id || resJson.alertId || resJson.userId)) {
+        return String(resJson.id || resJson._id || resJson.alertId || resJson.userId);
+      }
+      return null;
+    };
+
+    const logIfRelevant = async ({ url, method, bodyRaw, response }) => {
+      try {
+        const urlLower = String(url).toLowerCase();
+        
+        // Skip logging for admin-activity/log endpoint to prevent recursion and 404 errors
+        if (urlLower.includes('/admin-activity/log')) return;
+        
+        if (!(/\/alerts|\/emergenc|\/emergency|\/users|\/user/).test(urlLower)) return;
+
+        if (!response) return;
+        if (!response.ok) return;
+
+        const cloned = response.clone();
+        let resJson = null;
+        try { resJson = await cloned.json(); } catch { resJson = null; }
+
+        const bodyObj = safeParseJson(bodyRaw);
+        const action = determineAction(urlLower, method, bodyObj) || (resJson && resJson.action) || null;
+        if (!action) return;
+
+        const targetType = urlLower.includes('/alerts') ? 'alert' :
+                           (urlLower.includes('/emergenc') || urlLower.includes('/emergency')) ? 'emergency' :
+                           (urlLower.includes('/users') || urlLower.includes('/user')) ? 'user' : null;
+
+        const targetID = extractTargetId(url, bodyObj, resJson);
+        const descriptionParts = [];
+        if (bodyObj && bodyObj.reason) descriptionParts.push(String(bodyObj.reason));
+        if (resJson && resJson.message) descriptionParts.push(String(resJson.message));
+        if (!descriptionParts.length && bodyObj && (bodyObj.title || bodyObj.name)) descriptionParts.push(String(bodyObj.title || bodyObj.name));
+        const description = descriptionParts.join(' | ') || (resJson && resJson.summary) || '';
+
+        // Call existing logger (writes backend + Firestore)
+        await logAdminActivity(action, description, targetType, targetID, { requestUrl: url, method, responseBody: resJson ? undefined : undefined });
+      } catch (err) {
+        // don't block anything if logging fails
+        console.error('adminlogs auto-log error:', err);
+      }
+    };
+
+    // Patch fetch
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const [input, init] = args;
+      const url = (typeof input === 'string') ? input : (input && input.url) || '';
+      const urlLower = String(url).toLowerCase();
+      const method = (init && init.method) || (input && input.method) || 'GET';
+      
+      // Skip patching for Firebase and admin-activity endpoints
+      if (urlLower.includes('firestore.googleapis.com') || urlLower.includes('/admin-activity/log')) {
+        return originalFetch(...args);
+      }
+      
+      let bodyRaw = init && init.body;
+      // if body is a Request with body used, attempt to read; otherwise leave as is
+      try {
+        if (!bodyRaw && input && input instanceof Request) {
+          // Request cloning may be needed; try to read text
+          const reqClone = input.clone();
+          try { bodyRaw = await reqClone.text(); } catch { bodyRaw = null; }
+        }
+      } catch {}
+      const response = await originalFetch(...args);
+      // fire and forget logging (do not block response)
+      logIfRelevant({ url, method: method.toUpperCase(), bodyRaw, response }).catch(() => {});
+      return response;
+    };
+
+    // Patch XHR
+    const OriginalXHR = window.XMLHttpRequest;
+    function PatchedXHR() {
+      const xhr = new OriginalXHR();
+      let _url = '';
+      let _method = '';
+      let _body = null;
+
+      const originalOpen = xhr.open;
+      xhr.open = function (method, url, ...rest) {
+        _method = (method || 'GET').toUpperCase();
+        _url = url;
+        return originalOpen.call(this, method, url, ...rest);
+      };
+
+      const originalSend = xhr.send;
+      xhr.send = function (body) {
+        _body = body;
+        
+        // Skip patching for Firebase and admin-activity endpoints
+        const urlLower = String(_url).toLowerCase();
+        if (urlLower.includes('firestore.googleapis.com') || urlLower.includes('/admin-activity/log')) {
+          return originalSend.call(this, body);
+        }
+        
+        // attach readystatechange listener
+        const onReady = async () => {
+          if (xhr.readyState === 4) {
+            try {
+              const status = xhr.status || 0;
+              if (status >= 200 && status < 300) {
+                // try parse responseText as json
+                let resJson = null;
+                try { resJson = JSON.parse(xhr.responseText); } catch {}
+                await logIfRelevant({ url: _url, method: _method, bodyRaw: _body, response: { ok: true, clone: () => ({ json: async () => resJson }), status } });
+              }
+            } catch (err) { console.error('XHR adminlogs log error', err); }
+          }
+        };
+        xhr.addEventListener('readystatechange', onReady);
+        return originalSend.call(this, body);
+      };
+
+      return xhr;
+    }
+    // copy prototype chain
+    PatchedXHR.prototype = OriginalXHR.prototype;
+    window.XMLHttpRequest = PatchedXHR;
+
+    return () => {
+      // restore originals if component unmounts
+      if (window.fetch === window.fetch) {
+        try { window.fetch = originalFetch; } catch {}
+      }
+      try { window.XMLHttpRequest = OriginalXHR; } catch {}
+      window._adminLogsNetworkPatched = false;
+    };
+  }, []);
 
   if (loading) {
     
@@ -631,7 +961,7 @@ const ProfileSection = ({ adminName, onLogout }) => {
                     <button
                       onClick={toggleTheme}
                       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                      className="p-3 rounded-full bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                      className="p-3 rounded-full bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <span className="material-icons text-xl text-gray-700 dark:text-gray-200">
                         {isDark ? 'light_mode' : 'dark_mode'}
@@ -807,6 +1137,8 @@ const ProfileSection = ({ adminName, onLogout }) => {
                                   hour: '2-digit',
                                   minute: '2-digit'
                                 })
+                              : activity.timestamp instanceof Date
+                              ? activity.timestamp.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                               : 'Unknown date'
                             }
                           </span>

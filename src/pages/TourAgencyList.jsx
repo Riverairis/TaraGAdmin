@@ -45,7 +45,7 @@ const TourAgencyList = () => {
       const exampleAgencies = [
         {
           id: 1,
-          name: "Island Paradise Tours",
+          name: "Paradise Agency",
           contact: "Maria Santos",
           email: "maria@islandparadise.com",
           phone: "+63 912 345 6789",
@@ -64,9 +64,9 @@ const TourAgencyList = () => {
         },
         {
           id: 2,
-          name: "Mountain Trek Adventures",
+          name: "Vansol Travel & Tours",
           contact: "Carlos Reyes",
-          email: "carlos@mountaintrek.com",
+          email: "carlos@travelandtours.com",
           phone: "+63 917 890 1234",
           address: "456 Mountain View, Baguio City, Philippines",
           status: "active",
@@ -83,7 +83,7 @@ const TourAgencyList = () => {
         },
         {
           id: 3,
-          name: "Heritage Cultural Tours",
+          name: "Heritage Agency",
           contact: "Anna Lopez",
           email: "anna@heritagetours.com",
           phone: "+63 918 765 4321",
@@ -283,7 +283,7 @@ const TourAgencyList = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header - Updated to match EmergencyMonitoring design */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Tour Agencies</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Travel Agencies</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage partner tour agencies and applications</p>
         </div>
 

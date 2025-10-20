@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logAlertCreated, logAlertEdited, logAlertDeleted } from '../utils/adminActivityLogger';
 
 const IntegratedAlertsSystem = () => {
   const [activeTab, setActiveTab] = useState('alerts');
@@ -161,6 +162,9 @@ const IntegratedAlertsSystem = () => {
             endOn: alertData.endOn,
           }) : a));
 
+          // Log the edit action
+          await logAlertEdited(editingId, alertData.title);
+          
           setIsEditing(false);
           setEditingId(null);
           setIsModalOpen(false);
@@ -197,6 +201,10 @@ const IntegratedAlertsSystem = () => {
         };
 
         setAlerts(prev => [created, ...prev]);
+        
+        // Log the create action
+        await logAlertCreated(newId, alertData.title);
+        
         setNewAlert(initialNewAlert);
         setIsModalOpen(false);
         showValidation({ title: 'Created', message: 'Alert created successfully!', type: 'success' });
@@ -266,11 +274,18 @@ const IntegratedAlertsSystem = () => {
       type: 'confirm',
       onConfirm: async () => {
         try {
+          // Find the alert before deleting to get its title
+          const alert = alerts.find(a => a.id === alertId);
+          
           const token = localStorage.getItem('accessToken') || localStorage.getItem('token') || sessionStorage.getItem('accessToken') || 'demo-token';
           const baseUrl = API_BASE ? `${API_BASE}/alerts` : '/api/alerts';
           const res = await fetch(`${baseUrl}/${alertId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
           if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
           setAlerts(prev => prev.filter(a => a.id !== alertId));
+          
+          // Log the delete action
+          await logAlertDeleted(alertId, alert?.title || 'Unknown Alert');
+          
           // show a success modal after deletion; keep confirmation modal open until user closes it
           setValidationModal({ open: true, title: 'Deleted', message: 'Alert deleted successfully', type: 'success', onConfirm: null });
         } catch (err) {
