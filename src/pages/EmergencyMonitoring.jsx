@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { logEmergencyDeleted, logEmergencyViewed } from '../utils/adminActivityLogger';
 
 const EmergencyMonitoring = () => {
   const [safetyLogs, setSafetyLogs] = useState([]);
@@ -104,6 +105,10 @@ const EmergencyMonitoring = () => {
             throw new Error(`Delete failed: ${response.status}`);
           }
 
+          // Log the delete action
+          const log = safetyLogs.find(l => l._id === logId || l.id === logId);
+          await logEmergencyDeleted(logId, log?.emergencyType || 'Unknown Emergency');
+
           await fetchSafetyLogs();
           showValidation({
             title: 'Success',
@@ -120,6 +125,15 @@ const EmergencyMonitoring = () => {
         }
       }
     });
+  };
+
+  const handleViewEmergency = async (log) => {
+    setSelectedLog(log);
+    setShowModal(true);
+    
+    // Log the view action
+    const logId = log._id || log.id;
+    await logEmergencyViewed(logId, log.emergencyType || 'Unknown Emergency');
   };
 
   const formatDate = (timestamp) => {
@@ -462,10 +476,7 @@ const EmergencyMonitoring = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
                           <button
-                            onClick={() => {
-                              setSelectedLog(log);
-                              setShowModal(true);
-                            }}
+                            onClick={() => handleViewEmergency(log)}
                             className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
                           >
                             <i className="fas fa-eye text-sm"></i>

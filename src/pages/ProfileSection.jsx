@@ -1,26 +1,23 @@
 // ProfileSection.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logPasswordChange } from '../utils/adminActivityLogger';
 
 // Firebase SDK (modular) imports
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collection, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
-// Initialize Firebase (safe — will not re-init if already initialized)
-// Provide config via environment variables (REACT_APP_*) or a window.__FIREBASE_CONFIG__ object.
+// Initialize Firebase
 let firebaseDB = null;
 try {
   const firebaseConfig = {
-  apiKey: "AIzaSyCn20TvjC98ePXmOEQiJySSq2QN2p0QuRg",
-  authDomain: "taralets-3adb8.firebaseapp.com",
-  projectId: "taralets-3adb8",
-  storageBucket: "taralets-3adb8.firebasestorage.app",
-  messagingSenderId: "353174524186",
-  appId: "1:353174524186:web:45cf6ee4f8878bc0df9ca3"
-};
+    apiKey: "AIzaSyCn20TvjC98ePXmOEQiJySSq2QN2p0QuRg",
+    authDomain: "taralets-3adb8.firebaseapp.com",
+    projectId: "taralets-3adb8",
+    storageBucket: "taralets-3adb8.firebasestorage.app",
+    messagingSenderId: "353174524186",
+    appId: "1:353174524186:web:45cf6ee4f8878bc0df9ca3"
+  };
 
-  // Only initialize when projectId (minimal required) is present
   if (firebaseConfig && firebaseConfig.projectId) {
     if (!getApps().length) {
       initializeApp(firebaseConfig);
@@ -80,39 +77,44 @@ const ProfileSection = ({ adminName, onLogout }) => {
     }
   }, [adminData]);
 
-  const fetchAdminProfile = async () => {
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      if (!accessToken || !user.email) {
-        setError('Authentication required');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch('http://localhost:5000/api/auth/fetch-user-profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({ email: user.email })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch admin profile');
-      }
-
-      const data = await response.json();
-      setAdminData(data.user);
-    } catch (error) {
-      console.error('Error fetching admin profile:', error);
-      setError('Failed to load profile data');
-    } finally {
+  // In ProfileSection.jsx, replace the fetchAdminProfile function:
+const fetchAdminProfile = async () => {
+  try {
+    const accessToken = localStorage.getItem('accessToken');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (!accessToken || !user.email) {
+      setError('Authentication required');
       setLoading(false);
+      return;
     }
-  };
+
+    // Get API URL from localStorage or use relative path
+    const apiUrl = localStorage.getItem('apiBaseUrl') || '';
+    const baseUrl = apiUrl || window.location.origin;
+    
+    const response = await fetch(`${baseUrl}/api/auth/fetch-user-profile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({ email: user.email })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch admin profile');
+    }
+
+    const data = await response.json();
+    setAdminData(data.user);
+  } catch (error) {
+    console.error('Error fetching admin profile:', error);
+    setError('Failed to load profile data');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Sync local isDark with document class and storage when it changes
   useEffect(() => {
@@ -124,7 +126,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
       root.classList.remove('dark');
       try { localStorage.setItem('theme', 'light'); } catch {}
     }
-    // notify other parts of the app (main.jsx listens)
     window.dispatchEvent(new CustomEvent('theme-change', { detail: { isDark } }));
   }, [isDark]);
 
@@ -151,90 +152,14 @@ const ProfileSection = ({ adminName, onLogout }) => {
   };
 
   const handleSaveChanges = async () => {
-    // Implement save functionality here
     console.log('Saving changes:', editForm);
-    // After successful save:
     setIsEditing(false);
-    fetchAdminProfile(); // Refresh data
+    fetchAdminProfile();
   };
 
-  // Modified: fetch login/activity history from Firestore 'adminlogs' collection
-  // keep this as a fallback (manual fetch) — real-time listener implemented below
-  const fetchLoginHistory = async () => {
-    setIsLoadingHistory(true);
-    setHistoryError('');
-    setLoginHistory([]);
-
-    try {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (!user || (!user.id && !user._id && !user.uid && !user.email)) {
-        setHistoryError('Authenticated user not found');
-        return;
-      }
-
-      if (!firebaseDB) {
-        setHistoryError('Firebase not configured. Set REACT_APP_FIREBASE_* env vars or window.__FIREBASE_CONFIG__.');
-        return;
-      }
-
-      const logsRef = collection(firebaseDB, 'adminlogs');
-
-      // Server-side ordering may require composite index in some projects.
-      // Use simple query and local sort to avoid index requirement.
-      const q = query(logsRef, limit(1000));
-      const snapshot = await getDocs(q);
-
-      const userIds = [user.id, user._id, user.uid].filter(Boolean).map(String);
-      const userEmail = user.email;
-
-      const activities = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(d => {
-          if (!d) return false;
-          if (d.adminId && userIds.includes(String(d.adminId))) return true;
-          if (d.adminId && String(d.adminId) === userEmail) return true;
-          if (d.adminEmail && d.adminEmail === userEmail) return true;
-          if (d.metadata && d.metadata.adminId && userIds.includes(String(d.metadata.adminId))) return true;
-          return false;
-        })
-        .map(data => {
-          // normalize timestamp
-          let ts = null;
-          if (data.timestamp && typeof data.timestamp.seconds === 'number') ts = new Date(data.timestamp.seconds * 1000);
-          else if (data.timestamp && typeof data.timestamp.toDate === 'function') ts = data.timestamp.toDate();
-          else if (data.timestamp instanceof Date) ts = data.timestamp;
-          else if (data.createdAt && typeof data.createdAt.toDate === 'function') ts = data.createdAt.toDate();
-
-          return {
-            id: data.id,
-            action: data.action || 'Action',
-            description: data.description || '',
-            timestamp: ts,
-            rawTimestamp: data.timestamp || data.createdAt || null,
-            type: data.type || 'system',
-            targetType: data.targetType,
-            targetID: data.targetID,
-            metadata: data.metadata
-          };
-        });
-
-      // sort locally by timestamp desc
-      activities.sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0));
-
-      setLoginHistory(activities);
-    } catch (error) {
-      console.error('Error fetching login history from Firebase:', error);
-      setHistoryError(error.message || 'Failed to load activity history');
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
-
-  // Real-time listener: listens to adminlogs collection and filters client-side.
-  // This captures writes from other parts of the app (no need to change other files).
+  // Real-time listener for login history
   useEffect(() => {
     if (!showLoginHistory) {
-      // if modal closed, unsubscribe
       if (historyListenerRef.current) {
         historyListenerRef.current();
         historyListenerRef.current = null;
@@ -260,7 +185,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
 
     const logsRef = collection(firebaseDB, 'adminlogs');
     
-    // Try real-time listener first, fall back to one-time fetch if it fails
     try {
       const unsubscribe = onSnapshot(
         logsRef,
@@ -303,17 +227,17 @@ const ProfileSection = ({ adminName, onLogout }) => {
           setIsLoadingHistory(false);
         },
         (err) => {
-          console.warn('Real-time listener failed, falling back to one-time fetch:', err);
-          // Fall back to one-time fetch if real-time listener fails
-          fetchLoginHistory();
+          console.warn('Real-time listener failed:', err);
+          setHistoryError('Failed to load activity history');
+          setIsLoadingHistory(false);
         }
       );
 
       historyListenerRef.current = unsubscribe;
     } catch (err) {
-      console.warn('Failed to set up real-time listener, using one-time fetch:', err);
-      // Fall back to one-time fetch
-      fetchLoginHistory();
+      console.warn('Failed to set up real-time listener:', err);
+      setHistoryError('Failed to load activity history');
+      setIsLoadingHistory(false);
     }
 
     return () => {
@@ -381,7 +305,26 @@ const ProfileSection = ({ adminName, onLogout }) => {
         throw new Error(errorData.error || 'Failed to change password');
       }
 
-      // Reset form and close modal
+      // Log password change to Firebase only (no backend call to prevent 404)
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (firebaseDB && user.id) {
+          const logsRef = collection(firebaseDB, 'adminlogs');
+          await addDoc(logsRef, {
+            adminId: user.id,
+            adminEmail: user.email || null,
+            action: 'Password Changed',
+            description: 'Admin changed their password',
+            targetType: 'system',
+            targetID: 'system',
+            metadata: null,
+            timestamp: serverTimestamp()
+          });
+        }
+      } catch (logErr) {
+        console.warn('Failed to log password change:', logErr);
+      }
+
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
@@ -390,10 +333,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
       setShowChangePassword(false);
       setPasswordError('');
       
-      // Log successful password change
-      await logPasswordChange();
-      
-      // Show success message (you could add a toast notification here)
       alert('Password changed successfully!');
       
     } catch (error) {
@@ -406,7 +345,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
 
   const openLoginHistory = () => {
     setShowLoginHistory(true);
-    fetchLoginHistory();
   };
 
   const openChangePassword = () => {
@@ -414,264 +352,10 @@ const ProfileSection = ({ adminName, onLogout }) => {
     setPasswordError('');
   };
 
-  // Function to log admin activities (keeps existing backend log behavior)
-  const logAdminActivity = async (action, description = '', targetType = null, targetID = null, metadata = null) => {
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      // Try to send to backend API (optional - suppress errors if endpoint doesn't exist)
-      if (accessToken) {
-        try {
-          const response = await fetch('http://localhost:5000/api/admin-activity/log', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-              action,
-              description,
-              targetType,
-              targetID,
-              metadata
-            })
-          });
-          
-          // Silently ignore 404 errors (endpoint not implemented yet)
-          if (!response.ok && response.status !== 404) {
-            console.warn('Backend activity log failed:', response.status);
-          }
-        } catch (apiErr) {
-          // Silently ignore backend API errors - Firebase is primary logging system
-        }
-      }
-
-      // Write to Firestore 'adminlogs' (primary logging system)
-      if (firebaseDB && user && user.id) {
-        try {
-          const logsRef = collection(firebaseDB, 'adminlogs');
-          await addDoc(logsRef, {
-            adminId: user.id,
-            action,
-            description: description || '',
-            targetType: targetType || null,
-            targetID: targetID || null,
-            metadata: metadata || null,
-            timestamp: serverTimestamp()
-          });
-        } catch (fbErr) {
-          // don't block the main flow if Firestore write fails
-          console.error('Firestore adminlogs write failed:', fbErr);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to log admin activity:', error);
-    }
-  };
-
-  // expose a global helper so other UI files (edit/delete/warn/ban/etc.) can call this
-  // without modifying other files — call from other modules like: window.logAdminAction({ action, description, targetType, targetID, metadata })
-  try {
-    window.logAdminAction = async ({ action, description = '', targetType = null, targetID = null, metadata = null }) => {
-      await logAdminActivity(action, description, targetType, targetID, metadata);
-    };
-  } catch (e) {
-    // ignore if window isn't available
-  }
-
-  // --- NEW: Patch network calls (fetch + XHR) to auto-log relevant admin actions to Firestore/adminlogs ---
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (window._adminLogsNetworkPatched) return;
-    window._adminLogsNetworkPatched = true;
-
-    const safeParseJson = (input) => {
-      try {
-        if (!input) return null;
-        if (typeof input === 'string') return JSON.parse(input);
-        if (input instanceof FormData) {
-          const obj = {};
-          input.forEach((v, k) => { obj[k] = v; });
-          return obj;
-        }
-        return input;
-      } catch {
-        return null;
-      }
-    };
-
-    const determineAction = (urlLower, method, bodyObj) => {
-      // generic mapping: prioritize path hints and body fields
-      if (urlLower.includes('/alerts')) {
-        if (method === 'DELETE') return 'Deleted Alert';
-        if (method === 'POST') return bodyObj?.action === 'create' ? 'Created Alert' : 'Edited Alert';
-        if (method === 'PUT' || method === 'PATCH') return 'Edited Alert';
-      }
-      if (urlLower.includes('/emergenc') || urlLower.includes('/emergency')) {
-        if (method === 'DELETE') return 'Deleted Emergency';
-        if (method === 'POST') return 'Created Emergency';
-        return 'Updated Emergency';
-      }
-      if (urlLower.includes('/users') || urlLower.includes('/user')) {
-        // detect admin user actions
-        if (urlLower.includes('/warn')) return 'Warned User';
-        if (urlLower.includes('/ban')) return 'Banned User';
-        if (method === 'DELETE' || urlLower.includes('/delete')) return 'Deleted User';
-        if (method === 'POST') return 'Updated User';
-        return 'User Action';
-      }
-      return null;
-    };
-
-    const extractTargetId = (url, bodyObj, resJson) => {
-      // try body id, query param id, then response id
-      if (bodyObj && (bodyObj.id || bodyObj._id || bodyObj.alertId || bodyObj.userId || bodyObj.targetId)) {
-        return String(bodyObj.id || bodyObj._id || bodyObj.alertId || bodyObj.userId || bodyObj.targetId);
-      }
-      try {
-        const urlObj = new URL(url, window.location.origin);
-        if (urlObj.searchParams.get('id')) return urlObj.searchParams.get('id');
-        if (urlObj.searchParams.get('alertId')) return urlObj.searchParams.get('alertId');
-        if (urlObj.searchParams.get('userId')) return urlObj.searchParams.get('userId');
-      } catch {}
-      if (resJson && (resJson.id || resJson._id || resJson.alertId || resJson.userId)) {
-        return String(resJson.id || resJson._id || resJson.alertId || resJson.userId);
-      }
-      return null;
-    };
-
-    const logIfRelevant = async ({ url, method, bodyRaw, response }) => {
-      try {
-        const urlLower = String(url).toLowerCase();
-        
-        // Skip logging for admin-activity/log endpoint to prevent recursion and 404 errors
-        if (urlLower.includes('/admin-activity/log')) return;
-        
-        if (!(/\/alerts|\/emergenc|\/emergency|\/users|\/user/).test(urlLower)) return;
-
-        if (!response) return;
-        if (!response.ok) return;
-
-        const cloned = response.clone();
-        let resJson = null;
-        try { resJson = await cloned.json(); } catch { resJson = null; }
-
-        const bodyObj = safeParseJson(bodyRaw);
-        const action = determineAction(urlLower, method, bodyObj) || (resJson && resJson.action) || null;
-        if (!action) return;
-
-        const targetType = urlLower.includes('/alerts') ? 'alert' :
-                           (urlLower.includes('/emergenc') || urlLower.includes('/emergency')) ? 'emergency' :
-                           (urlLower.includes('/users') || urlLower.includes('/user')) ? 'user' : null;
-
-        const targetID = extractTargetId(url, bodyObj, resJson);
-        const descriptionParts = [];
-        if (bodyObj && bodyObj.reason) descriptionParts.push(String(bodyObj.reason));
-        if (resJson && resJson.message) descriptionParts.push(String(resJson.message));
-        if (!descriptionParts.length && bodyObj && (bodyObj.title || bodyObj.name)) descriptionParts.push(String(bodyObj.title || bodyObj.name));
-        const description = descriptionParts.join(' | ') || (resJson && resJson.summary) || '';
-
-        // Call existing logger (writes backend + Firestore)
-        await logAdminActivity(action, description, targetType, targetID, { requestUrl: url, method, responseBody: resJson ? undefined : undefined });
-      } catch (err) {
-        // don't block anything if logging fails
-        console.error('adminlogs auto-log error:', err);
-      }
-    };
-
-    // Patch fetch
-    const originalFetch = window.fetch.bind(window);
-    window.fetch = async (...args) => {
-      const [input, init] = args;
-      const url = (typeof input === 'string') ? input : (input && input.url) || '';
-      const urlLower = String(url).toLowerCase();
-      const method = (init && init.method) || (input && input.method) || 'GET';
-      
-      // Skip patching for Firebase and admin-activity endpoints
-      if (urlLower.includes('firestore.googleapis.com') || urlLower.includes('/admin-activity/log')) {
-        return originalFetch(...args);
-      }
-      
-      let bodyRaw = init && init.body;
-      // if body is a Request with body used, attempt to read; otherwise leave as is
-      try {
-        if (!bodyRaw && input && input instanceof Request) {
-          // Request cloning may be needed; try to read text
-          const reqClone = input.clone();
-          try { bodyRaw = await reqClone.text(); } catch { bodyRaw = null; }
-        }
-      } catch {}
-      const response = await originalFetch(...args);
-      // fire and forget logging (do not block response)
-      logIfRelevant({ url, method: method.toUpperCase(), bodyRaw, response }).catch(() => {});
-      return response;
-    };
-
-    // Patch XHR
-    const OriginalXHR = window.XMLHttpRequest;
-    function PatchedXHR() {
-      const xhr = new OriginalXHR();
-      let _url = '';
-      let _method = '';
-      let _body = null;
-
-      const originalOpen = xhr.open;
-      xhr.open = function (method, url, ...rest) {
-        _method = (method || 'GET').toUpperCase();
-        _url = url;
-        return originalOpen.call(this, method, url, ...rest);
-      };
-
-      const originalSend = xhr.send;
-      xhr.send = function (body) {
-        _body = body;
-        
-        // Skip patching for Firebase and admin-activity endpoints
-        const urlLower = String(_url).toLowerCase();
-        if (urlLower.includes('firestore.googleapis.com') || urlLower.includes('/admin-activity/log')) {
-          return originalSend.call(this, body);
-        }
-        
-        // attach readystatechange listener
-        const onReady = async () => {
-          if (xhr.readyState === 4) {
-            try {
-              const status = xhr.status || 0;
-              if (status >= 200 && status < 300) {
-                // try parse responseText as json
-                let resJson = null;
-                try { resJson = JSON.parse(xhr.responseText); } catch {}
-                await logIfRelevant({ url: _url, method: _method, bodyRaw: _body, response: { ok: true, clone: () => ({ json: async () => resJson }), status } });
-              }
-            } catch (err) { console.error('XHR adminlogs log error', err); }
-          }
-        };
-        xhr.addEventListener('readystatechange', onReady);
-        return originalSend.call(this, body);
-      };
-
-      return xhr;
-    }
-    // copy prototype chain
-    PatchedXHR.prototype = OriginalXHR.prototype;
-    window.XMLHttpRequest = PatchedXHR;
-
-    return () => {
-      // restore originals if component unmounts
-      if (window.fetch === window.fetch) {
-        try { window.fetch = originalFetch; } catch {}
-      }
-      try { window.XMLHttpRequest = OriginalXHR; } catch {}
-      window._adminLogsNetworkPatched = false;
-    };
-  }, []);
-
   if (loading) {
-    
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 md:p-8">
+        <div className="max-w-6xl mx-auto">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8">
             <div className="animate-pulse">
               <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-8"></div>
@@ -696,10 +380,9 @@ const ProfileSection = ({ adminName, onLogout }) => {
   }
 
   if (error) {
-   
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 md:p-8">
+        <div className="max-w-6xl mx-auto">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -724,14 +407,12 @@ const ProfileSection = ({ adminName, onLogout }) => {
     );
   }
 
-  
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 md:p-8">
       <div className="max-w-6xl mx-auto">
-
         {/* Main Profile Card */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden mb-8">
-          {/* Profile Header with subtle gradient */}
+          {/* Profile Header */}
           <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-gray-900 dark:to-gray-950 p-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div className="flex items-center">
@@ -770,17 +451,15 @@ const ProfileSection = ({ adminName, onLogout }) => {
               
               <div className="flex space-x-3 mt-4 md:mt-0">
                 {!isEditing ? (
-                  <>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit Profile
-                    </button>
-                  </>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm hover:shadow-md flex items-center"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit Profile
+                  </button>
                 ) : (
                   <>
                     <button
@@ -898,11 +577,11 @@ const ProfileSection = ({ adminName, onLogout }) => {
                 </h3>
                 <div className="space-y-6">
                   {[
-                    
                     {
                       title: 'Login History',
                       description: 'View your recent account activity',
                       buttonText: 'View History',
+                      onClick: openLoginHistory,
                       icon: (
                         <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -913,6 +592,7 @@ const ProfileSection = ({ adminName, onLogout }) => {
                       title: 'Change Password',
                       description: 'Update your password regularly to keep your account secure',
                       buttonText: 'Change Password',
+                      onClick: openChangePassword,
                       buttonStyle: 'bg-gradient-to-r from-cyan-600 to-cyan-700 text-white hover:from-cyan-700 hover:to-cyan-800',
                       icon: (
                         <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -932,7 +612,7 @@ const ProfileSection = ({ adminName, onLogout }) => {
                         </div>
                       </div>
                       <button 
-                        onClick={item.title === 'Login History' ? openLoginHistory : item.title === 'Change Password' ? openChangePassword : undefined}
+                        onClick={item.onClick}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md ${item.buttonStyle || 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                       >
                         {item.buttonText}
@@ -952,7 +632,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
                   Preferences
                 </h3>
                 <div className="space-y-6">
-                  {/* Theme (Dark/Light) Toggle */}
                   <div className="p-5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <div>
                       <h4 className="font-medium text-gray-900 dark:text-gray-100">Appearance</h4>
@@ -1013,7 +692,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
           
           {/* Sidebar Column */}
           <div className="space-y-8">
-            {/* Account Info Card */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                 <svg className="w-5 h-5 mr-2 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
@@ -1023,8 +701,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
                 Account Information
               </h3>
               <div className="space-y-4">
-              
-               
                 <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <p className="text-xs text-gray-500 dark:text-gray-400">Member Since</p>
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -1042,7 +718,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
               </div>
             </div>
             
-            {/* System Status Card */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                 <svg className="w-5 h-5 mr-2 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
@@ -1062,8 +737,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
                 </div>
               </div>
             </div>
-            
-            
           </div>
         </div>
       </div>
@@ -1096,12 +769,6 @@ const ProfileSection = ({ adminName, onLogout }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p className="text-red-600 dark:text-red-400 mb-4">{historyError}</p>
-                  <button
-                    onClick={fetchLoginHistory}
-                    className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-lg text-sm font-medium hover:from-cyan-700 hover:to-cyan-800 transition-all shadow-md hover:shadow-lg"
-                  >
-                    Try Again
-                  </button>
                 </div>
               ) : loginHistory.length === 0 ? (
                 <div className="text-center py-8">
@@ -1115,7 +782,7 @@ const ProfileSection = ({ adminName, onLogout }) => {
                   {loginHistory.map((activity) => (
                     <div key={activity.id} className="flex items-start p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                       <div className={`flex-shrink-0 w-3 h-3 rounded-full mt-2 ${
-                        activity.type === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                        activity.type === 'warning' ? 'bg-yellow-500' : 'bg-cyan-500'
                       }`}></div>
                       <div className="ml-4 flex-1">
                         <div className="flex items-center justify-between">

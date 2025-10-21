@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { logRevenueTransactionProcessed, logRevenueSubscriptionUpdated, logRevenueCommissionRateChanged } from '../utils/adminActivityLogger';
 
 const RevenueManagement = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -307,6 +308,10 @@ const RevenueManagement = () => {
     };
     
     setTransactions([...transactions, transaction]);
+    
+    // Log the transaction
+    logRevenueTransactionProcessed(transaction.transactionId, transaction.agencyName, transaction.amount);
+    
     setShowTransactionModal(false);
     setNewTransaction({
       agencyName: '',
@@ -330,6 +335,9 @@ const RevenueManagement = () => {
       setAgencySubscriptions([...agencySubscriptions, subscription]);
     }
     
+    // Log the subscription creation
+    logRevenueSubscriptionUpdated(newId, subscription.name, 'created');
+    
     setShowSubscriptionModal(false);
     setNewSubscription({
       name: '',
@@ -342,6 +350,10 @@ const RevenueManagement = () => {
   };
 
   const handleUpdateSubscriptionStatus = (id, type, status) => {
+    const subscription = type === 'user' 
+      ? userSubscriptions.find(s => s.id === id)
+      : agencySubscriptions.find(s => s.id === id);
+    
     if (type === 'user') {
       setUserSubscriptions(userSubscriptions.map(plan => 
         plan.id === id ? {...plan, status} : plan
@@ -351,17 +363,31 @@ const RevenueManagement = () => {
         plan.id === id ? {...plan, status} : plan
       ));
     }
+    
+    // Log the subscription status update
+    logRevenueSubscriptionUpdated(id, subscription?.name || 'Unknown Plan', status);
   };
 
   const handleUpdateTransactionStatus = (id, status) => {
+    const transaction = transactions.find(t => t.id === id);
+    
     setTransactions(transactions.map(transaction => 
       transaction.id === id ? {...transaction, status} : transaction
     ));
+    
+    // Log the transaction status update
+    if (transaction) {
+      logRevenueTransactionProcessed(transaction.transactionId, transaction.agencyName, transaction.amount);
+    }
   };
 
   const handleUpdateCommissionRate = async () => {
     try {
       console.log('Updating commission rate to:', commissionRate);
+      
+      // Log the commission rate change
+      await logRevenueCommissionRateChanged(commissionRate);
+      
       showValidation({
         title: 'Success',
         message: `Commission rate updated to ${commissionRate}%`,

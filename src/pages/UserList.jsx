@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import { logUserWarned, logUserBanned, logUserUnbanned, logUserActivated, logUserDeleted } from '../utils/adminActivityLogger';
 
 const dropdownStyle = `
   .action-dropdown {
@@ -263,6 +264,14 @@ const UserList = () => {
       setUsers(prev => prev.map(user =>
         user.id === userId ? { ...user, status: 'active', moderationLogID: undefined } : user
       ));
+      
+      // Log the activation action
+      if (isBan) {
+        await logUserUnbanned(userId, target?.username || target?.name || 'Unknown User');
+      } else {
+        await logUserActivated(userId, target?.username || target?.name || 'Unknown User');
+      }
+      
       alert(isBan ? 'User unbanned successfully' : 'User unwarned successfully');
     } catch (error) {
       console.error('Error activating user:', error);
@@ -275,10 +284,16 @@ const UserList = () => {
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       try {
         const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+        const user = users.find(u => u.id === userId);
+        
         await axios.delete(`http://localhost:5000/api/user/${userId}`, {
           headers: { 'Authorization': token ? `Bearer ${token}` : undefined }
         });
         setUsers(prev => prev.filter(user => user.id !== userId));
+        
+        // Log the delete action
+        await logUserDeleted(userId, user?.username || user?.name || 'Unknown User');
+        
         alert('User deleted successfully');
       } catch (error) {
         console.error('Error deleting user:', error);
@@ -348,6 +363,11 @@ const UserList = () => {
       setWarnings(prev => ({ ...prev, [warnUserId]: (prev[warnUserId] || 0) + 1 }));
       const newLogId = createResp?.data?.logId;
       setUsers(prev => prev.map(u => u.id === warnUserId ? { ...u, status: 'warned', moderationLogID: newLogId } : u));
+      
+      // Log the warn action
+      const warnedUser = users.find(u => u.id === warnUserId);
+      await logUserWarned(warnUserId, warnedUser?.username || warnedUser?.name || 'Unknown User', reasonValue);
+      
       setShowWarnModal(false);
     } catch (err) {
       console.error('Error adding warning:', err);
@@ -385,6 +405,11 @@ const UserList = () => {
 
       const newLogId = createResp?.data?.logId;
       setUsers(prev => prev.map(user => user.id === banUserId ? { ...user, status: 'banned', moderationLogID: newLogId } : user));
+      
+      // Log the ban action
+      const bannedUser = users.find(u => u.id === banUserId);
+      await logUserBanned(banUserId, bannedUser?.username || bannedUser?.name || 'Unknown User', reasonValue);
+      
       setShowBanModal(false);
     } catch (err) {
       console.error('Error banning user:', err);

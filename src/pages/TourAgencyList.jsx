@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { logAgencyStatusChanged, logAgencyApplicationReviewed } from '../utils/adminActivityLogger';
 
 const TourAgencyList = () => {
   const [activeTab, setActiveTab] = useState('agencies');
@@ -186,6 +187,11 @@ const TourAgencyList = () => {
       console.log(`Changing status of agency ${agencyId} to ${newStatus}`);
       // API call to update agency status
       // await axios.patch(`http://localhost:8080/api/agencies/${agencyId}/status`, { status: newStatus });
+      
+      // Log the status change
+      const agency = agencies.find(a => a.id === agencyId);
+      await logAgencyStatusChanged(agencyId, agency?.name || 'Unknown Agency', newStatus);
+      
       showValidation({
         title: 'Status Updated',
         message: `Agency status updated to ${newStatus}`,
@@ -207,6 +213,11 @@ const TourAgencyList = () => {
       console.log(`${action} application ${applicationId}`);
       // API call to review application
       // await axios.post(`http://localhost:8080/api/agency-applications/${applicationId}/review`, { action });
+      
+      // Log the application review
+      const application = applications.find(a => a.id === applicationId);
+      await logAgencyApplicationReviewed(applicationId, application?.agencyName || 'Unknown Agency', action);
+      
       showValidation({
         title: 'Application Updated',
         message: `Application ${action === 'approve' ? 'approved' : 'rejected'}`,
