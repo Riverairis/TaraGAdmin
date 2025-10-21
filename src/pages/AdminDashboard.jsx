@@ -13,6 +13,8 @@ import { logLogin } from '../utils/adminActivityLogger';
 const AdminDashboard = ({ onLogout }) => {
   const [adminName, setAdminName] = useState('Admin');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -64,6 +66,42 @@ const AdminDashboard = ({ onLogout }) => {
     checkAuth();
   }, [navigate]);
 
+  // Fetch total users count (excluding admins)
+  useEffect(() => {
+    const fetchTotalUsers = async () => {
+      try {
+        setIsLoadingUsers(true);
+        const accessToken = localStorage.getItem('accessToken');
+        
+        if (!accessToken) {
+          return;
+        }
+
+        const response = await fetch('http://localhost:5000/api/user/filtered-users', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Filter to only count travelers (exclude admins)
+          const users = data.users || [];
+          const travelersOnly = users.filter(user => (user.type || '').toLowerCase() === 'traveler');
+          setTotalUsers(travelersOnly.length);
+        }
+      } catch (error) {
+        console.error('Error fetching total users:', error);
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+
+    fetchTotalUsers();
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-white">
       {/* Sidebar Component */}
@@ -110,7 +148,14 @@ const AdminDashboard = ({ onLogout }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Users</h3>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white">1,247</p>
+                      {isLoadingUsers ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+                          <p className="text-xl font-bold text-gray-900 dark:text-white">Loading...</p>
+                        </div>
+                      ) : (
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalUsers.toLocaleString()}</p>
+                      )}
                     </div>
                     <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900/30 rounded-lg flex items-center justify-center">
                       <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -119,8 +164,7 @@ const AdminDashboard = ({ onLogout }) => {
                     </div>
                   </div>
                   <div className="mt-4 flex items-center text-sm">
-                    <span className="text-green-600 dark:text-green-400 font-medium">+12%</span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-1">from last month</span>
+                    <span className="text-cyan-600 dark:text-cyan-400 font-medium">Real-time data</span>
                   </div>
                 </div>
 
