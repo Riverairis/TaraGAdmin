@@ -218,3 +218,16 @@ export const logSubscriptionStatusChanged = async (subscriptionId, planName, new
 export const logCommissionRateUpdated = async (newRate) => {
   await logSystemAction('Commission Rate Updated', `Updated commission rate to ${newRate}%`, { newRate });
 };
+
+// Revenue Management specific loggers
+export const logRevenueTransactionProcessed = async (transactionId, agencyName, amount) => {
+  await logAdminActivity('Revenue Transaction Processed', `Processed transaction ${transactionId} for ${agencyName}: ₱${amount}`, 'transaction', transactionId, { agencyName, amount });
+};
+
+export const logRevenueSubscriptionUpdated = async (subscriptionId, planName, action) => {
+  await logAdminActivity('Revenue Subscription Updated', `${action} subscription plan: ${planName}`, 'subscription', subscriptionId, { planName, action });
+};
+
+export const logRevenueCommissionRateChanged = async (newRate) => {
+  await logSystemAction('Revenue Commission Rate Changed', `Changed commission rate to ${newRate}%`, { newRate });
+};

@@ -7,6 +7,7 @@ const dropdownStyle = `
     max-height: 300px;
     overflow-y: auto;
     z-index: 100;
+    position: fixed;
   }
 
   @media (max-height: 600px) {
@@ -53,6 +54,12 @@ const UserList = () => {
   const [warnSubmitting, setWarnSubmitting] = useState(false);
   const [warnForm, setWarnForm] = useState({ duration: '7', reasonOption: 'Spam', reason: '', message: '' });
   const [warnErrors, setWarnErrors] = useState({});
+
+  // Validation modal state
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [validationAction, setValidationAction] = useState(null);
+  const [validationUserId, setValidationUserId] = useState(null);
+  const [validationMessage, setValidationMessage] = useState('');
 
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
@@ -183,137 +190,190 @@ const UserList = () => {
     setActiveTab('profile');
   };
 
-  // Action handlers (restore original behaviors)
+  // Validation modal handler
+  const showValidation = (userId, action, message) => {
+    setValidationUserId(userId);
+    setValidationAction(() => action);
+    setValidationMessage(message);
+    setShowValidationModal(true);
+    setActionMenu(null);
+  };
 
-  const handleAddWarning = async (userId) => {
-    // ask confirmation first (user requested YES)
-    if (window.confirm('Are you sure you want to add a warning to this user?')) {
-      setWarnUserId(userId);
-      setWarnForm({ duration: '7', reasonOption: 'Spam', reason: '', message: '' });
-      setWarnErrors({});
-      setShowWarnModal(true);
-      setActionMenu(null);
+  const executeValidationAction = async () => {
+    if (validationAction) {
+      await validationAction(validationUserId);
     }
+    setShowValidationModal(false);
+    setValidationAction(null);
+    setValidationUserId(null);
+    setValidationMessage('');
+  };
+
+  // Action handlers with validation modals
+  const handleAddWarning = async (userId) => {
+    showValidation(userId, 
+      async (id) => {
+        setWarnUserId(id);
+        setWarnForm({ duration: '7', reasonOption: 'Spam', reason: '', message: '' });
+        setWarnErrors({});
+        setShowWarnModal(true);
+      },
+      'Are you sure you want to add a warning to this user?'
+    );
   };
 
   const handleRemoveWarning = async (userId) => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const admin = localStorage.getItem('user');
-      const adminID = admin ? (JSON.parse(admin)?.id || JSON.parse(admin)?._id) : null;
-      const target = users.find(u => u.id === userId);
-      const logID = target?.moderationLogID;
-      if (!token || !adminID || !logID) { alert('Missing session or logID.'); return; }
+    showValidation(userId, 
+      async (id) => {
+        try {
+          const token = localStorage.getItem('accessToken');
+          const admin = localStorage.getItem('user');
+          const adminID = admin ? (JSON.parse(admin)?.id || JSON.parse(admin)?._id) : null;
+          const target = users.find(u => u.id === id);
+          const logID = target?.moderationLogID;
+          if (!token || !adminID || !logID) { alert('Missing session or logID.'); return; }
 
-      await axios.put('http://localhost:5000/api/moderation/unwarn', {
-        logID,
-        adminID
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+          await axios.put('http://localhost:5000/api/moderation/unwarn', {
+            logID,
+            adminID
+          }, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
 
-      setWarnings(prev => ({
-        ...prev,
-        [userId]: Math.max(0, (prev[userId] || 0) - 1)
-      }));
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'active', moderationLogID: undefined } : u));
-      alert('Warning removed.');
-    } catch (error) {
-      console.error('Error removing warning:', error);
-      alert('Failed to remove warning');
-    }
-    setActionMenu(null);
+          setWarnings(prev => ({
+            ...prev,
+            [id]: Math.max(0, (prev[id] || 0) - 1)
+          }));
+          setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'active', moderationLogID: undefined } : u));
+          alert('Warning removed.');
+        } catch (error) {
+          console.error('Error removing warning:', error);
+          alert('Failed to remove warning');
+        }
+      },
+      'Are you sure you want to remove a warning from this user?'
+    );
   };
 
   const handleSuspendUser = async (userId) => {
-    if (window.confirm('Issue a warning instead of suspend? This backend supports warning/ban.')) {
-      try {
-        await handleAddWarning(userId);
-        setUsers(prev => prev.map(user => user.id === userId ? { ...user, status: 'warned' } : user));
-      } catch (error) {
-        console.error('Error suspending user:', error);
-        alert('Failed to suspend user');
-      }
-    }
-    setActionMenu(null);
+    showValidation(userId, 
+      async (id) => {
+        try {
+          await handleAddWarning(id);
+          setUsers(prev => prev.map(user => user.id === id ? { ...user, status: 'warned' } : user));
+        } catch (error) {
+          console.error('Error suspending user:', error);
+          alert('Failed to suspend user');
+        }
+      },
+      'Issue a warning instead of suspend? This backend supports warning/ban.'
+    );
   };
 
   const handleBanUser = async (userId) => {
-    if (window.confirm('Are you sure you want to ban this user?')) {
-      setBanUserId(userId);
-      setBanForm({ duration: '3650', reasonOption: 'Scamming or Fraud', reason: '', message: '' });
-      setBanErrors({});
-      setShowBanModal(true);
-      setActionMenu(null);
-    }
+    showValidation(userId, 
+      async (id) => {
+        setBanUserId(id);
+        setBanForm({ duration: '3650', reasonOption: 'Scamming or Fraud', reason: '', message: '' });
+        setBanErrors({});
+        setShowBanModal(true);
+      },
+      'Are you sure you want to ban this user?'
+    );
   };
 
   const handleActivateUser = async (userId) => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const admin = localStorage.getItem('user');
-      const adminID = admin ? (JSON.parse(admin)?.id || JSON.parse(admin)?._id) : null;
-      const target = users.find(u => u.id === userId);
-      const logID = target?.moderationLogID;
-      if (!token || !adminID || !logID) { alert('Missing session or logID.'); return; }
+    const target = users.find(u => u.id === userId);
+    const isBan = (target?.status || '').toLowerCase() === 'banned';
+    
+    showValidation(userId, 
+      async (id) => {
+        try {
+          const token = localStorage.getItem('accessToken');
+          const admin = localStorage.getItem('user');
+          const adminID = admin ? (JSON.parse(admin)?.id || JSON.parse(admin)?._id) : null;
+          const targetUser = users.find(u => u.id === id);
+          const logID = targetUser?.moderationLogID;
+          if (!token || !adminID || !logID) { alert('Missing session or logID.'); return; }
 
-      const isBan = (target?.status || '').toLowerCase() === 'banned';
-      const url = isBan ? 'http://localhost:5000/api/moderation/unban' : 'http://localhost:5000/api/moderation/unwarn';
-      await axios.put(url, { logID, adminID }, { headers: { 'Authorization': `Bearer ${token}` } });
+          const url = isBan ? 'http://localhost:5000/api/moderation/unban' : 'http://localhost:5000/api/moderation/unwarn';
+          await axios.put(url, { logID, adminID }, { headers: { 'Authorization': `Bearer ${token}` } });
 
-      setUsers(prev => prev.map(user =>
-        user.id === userId ? { ...user, status: 'active', moderationLogID: undefined } : user
-      ));
-      
-      // Log the activation action
-      if (isBan) {
-        await logUserUnbanned(userId, target?.username || target?.name || 'Unknown User');
-      } else {
-        await logUserActivated(userId, target?.username || target?.name || 'Unknown User');
-      }
-      
-      alert(isBan ? 'User unbanned successfully' : 'User unwarned successfully');
-    } catch (error) {
-      console.error('Error activating user:', error);
-      alert('Failed to activate user');
-    }
-    setActionMenu(null);
+          setUsers(prev => prev.map(user =>
+            user.id === id ? { ...user, status: 'active', moderationLogID: undefined } : user
+          ));
+          
+          // Log the activation action
+          if (isBan) {
+            await logUserUnbanned(id, targetUser?.username || targetUser?.name || 'Unknown User');
+          } else {
+            await logUserActivated(id, targetUser?.username || targetUser?.name || 'Unknown User');
+          }
+          
+          alert(isBan ? 'User unbanned successfully' : 'User unwarned successfully');
+        } catch (error) {
+          console.error('Error activating user:', error);
+          alert('Failed to activate user');
+        }
+      },
+      `Are you sure you want to ${isBan ? 'unban' : 'activate'} this user?`
+    );
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      try {
-        const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
-        const user = users.find(u => u.id === userId);
-        
-        await axios.delete(`http://localhost:5000/api/user/${userId}`, {
-          headers: { 'Authorization': token ? `Bearer ${token}` : undefined }
-        });
-        setUsers(prev => prev.filter(user => user.id !== userId));
-        
-        // Log the delete action
-        await logUserDeleted(userId, user?.username || user?.name || 'Unknown User');
-        
-        alert('User deleted successfully');
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Failed to delete user');
-      }
-    }
-    setActionMenu(null);
+    showValidation(userId, 
+      async (id) => {
+        try {
+          const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
+          const user = users.find(u => u.id === id);
+          
+          await axios.delete(`http://localhost:5000/api/user/${id}`, {
+            headers: { 'Authorization': token ? `Bearer ${token}` : undefined }
+          });
+          setUsers(prev => prev.filter(user => user.id !== id));
+          
+          // Log the delete action
+          await logUserDeleted(id, user?.username || user?.name || 'Unknown User');
+          
+          alert('User deleted successfully');
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          alert('Failed to delete user');
+        }
+      },
+      'Are you sure you want to delete this user? This action cannot be undone.'
+    );
   };
 
-  const toggleActionMenu = (userId) => {
+  const toggleActionMenu = (userId, event) => {
     if (actionMenu === userId) {
       setActionMenu(null);
     } else {
       setActionMenu(userId);
+      
+      // Calculate position to prevent overflow
+      if (event) {
+        const buttonRect = event.currentTarget.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        
+        let top = buttonRect.bottom + window.scrollY;
+        const left = buttonRect.left + window.scrollX;
+        
+        // Check if dropdown would overflow bottom of viewport
+        const dropdownHeight = 300; // Approximate max height
+        if (top + dropdownHeight > viewportHeight + window.scrollY) {
+          // Position above the button instead
+          top = buttonRect.top + window.scrollY - dropdownHeight;
+        }
+        
+        setMenuPosition({ top, left });
+      }
     }
   };
 
   const handleActionClick = (e, userId) => {
     e.stopPropagation();
-    toggleActionMenu(userId);
+    toggleActionMenu(userId, e);
   };
 
   // Filtered list based on search
@@ -505,7 +565,14 @@ const UserList = () => {
                           </button>
 
                           {actionMenu === user.id && (
-                            <div ref={actionMenuRef} className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 action-dropdown z-50">
+                            <div 
+                              ref={actionMenuRef} 
+                              className="fixed bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 action-dropdown z-50"
+                              style={{
+                                top: `${menuPosition.top}px`,
+                                left: `${menuPosition.left}px`
+                              }}
+                            >
                               <div className="py-1">
                                 <button
                                   onClick={() => { fetchUserProfile(user.id); setActionMenu(null); }}
@@ -566,6 +633,42 @@ const UserList = () => {
             </div>
           )}
         </div>
+
+        {/* VALIDATION MODAL */}
+        {showValidationModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Confirm Action</h2>
+                  <button 
+                    onClick={() => setShowValidationModal(false)} 
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    <i className="fas fa-times text-xl"></i>
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-700 dark:text-gray-300">{validationMessage}</p>
+              </div>
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-2xl flex justify-end gap-3">
+                <button 
+                  onClick={() => setShowValidationModal(false)} 
+                  className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeValidationAction}
+                  className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* WARN Modal */}
         {showWarnModal && (
