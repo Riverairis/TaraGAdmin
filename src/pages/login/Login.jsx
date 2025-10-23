@@ -1,6 +1,7 @@
 // Login.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AgencyApprovalModal from '../../components/AgencyApprovalModal';
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -9,6 +10,8 @@ const Login = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showAgencyModal, setShowAgencyModal] = useState(false);
+  const [agencyData, setAgencyData] = useState(null);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -23,11 +26,57 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate login process
-    setTimeout(() => {
+    try {
+      // Call your actual login API endpoint
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle specific error codes
+        if (data.code === 'auth/agency-not-approved') {
+          // Agency application is pending - show modal
+          setAgencyData({
+            agency: data.agencyStatus.agencyData
+          });
+          setShowAgencyModal(true);
+          setIsLoading(false);
+          return;
+        } else if (data.code === 'auth/email-not-verified') {
+          alert('Please verify your email before logging in.');
+          setIsLoading(false);
+          return;
+        } else {
+          alert(data.error || 'Login failed. Please check your credentials.');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Login successful
+      if (data.success) {
+        // Store tokens and user data
+        localStorage.setItem('token', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        setIsLoading(false);
+        navigate('/admin-dashboard?section=home');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('An error occurred during login. Please try again.');
       setIsLoading(false);
-      navigate('/admin-dashboard?section=home');
-    }, 1500);
+    }
   };
 
   return (
@@ -158,6 +207,13 @@ const Login = () => {
           </p>
         </div>
       </div>
+
+      {/* Agency Approval Modal */}
+      <AgencyApprovalModal 
+        isOpen={showAgencyModal}
+        onClose={() => setShowAgencyModal(false)}
+        agencyData={agencyData}
+      />
     </div>
   );
 };

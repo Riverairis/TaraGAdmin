@@ -1,6 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, collection, getDocs, doc, updateDoc, setDoc, serverTimestamp, arrayUnion, getDoc } from 'firebase/firestore';
 import { logAgencyStatusChanged, logAgencyApplicationReviewed } from '../utils/adminActivityLogger';
+
+// Initialize Firebase
+let firebaseDB = null;
+try {
+  const firebaseConfig = {
+    apiKey: "AIzaSyCn20TvjC98ePXmOEQiJySSq2QN2p0QuRg",
+    authDomain: "taralets-3adb8.firebaseapp.com",
+    projectId: "taralets-3adb8",
+    storageBucket: "taralets-3adb8.firebasestorage.app",
+    messagingSenderId: "353174524186",
+    appId: "1:353174524186:web:45cf6ee4f8878bc0df9ca3"
+  };
+
+  if (firebaseConfig && firebaseConfig.projectId) {
+    if (!getApps().length) {
+      initializeApp(firebaseConfig);
+    }
+    firebaseDB = getFirestore();
+  }
+} catch (err) {
+  console.warn('Firebase initialization failed:', err);
+}
 
 const TourAgencyList = () => {
   const [activeTab, setActiveTab] = useState('agencies');
@@ -43,131 +67,155 @@ const TourAgencyList = () => {
 
   const fetchAgencies = async () => {
     try {
-      const exampleAgencies = [
-        {
-          id: 1,
-          name: "Paradise Agency",
-          contact: "Maria Santos",
-          email: "maria@islandparadise.com",
-          phone: "+63 912 345 6789",
-          address: "123 Beach Road, Boracay, Philippines",
-          status: "active",
-          accreditation: "DOT-ACCR-2023-001",
-          joinDate: "2023-05-15",
-          toursCount: 24,
-          rating: 4.8,
-          description: "Specializing in island hopping tours and water activities in the beautiful islands of the Philippines.",
-          services: ["Island Hopping", "Snorkeling", "Scuba Diving", "Sunset Cruises"],
-          socialMedia: {
-            facebook: "https://facebook.com/islandparadise",
-            instagram: "https://instagram.com/islandparadise"
-          }
-        },
-        {
-          id: 2,
-          name: "Vansol Travel & Tours",
-          contact: "Carlos Reyes",
-          email: "carlos@travelandtours.com",
-          phone: "+63 917 890 1234",
-          address: "456 Mountain View, Baguio City, Philippines",
-          status: "active",
-          accreditation: "DOT-ACCR-2023-045",
-          joinDate: "2023-07-22",
-          toursCount: 18,
-          rating: 4.9,
-          description: "Expert guides for mountain climbing, hiking, and adventure tours across the Philippine mountains.",
-          services: ["Mountain Climbing", "Hiking", "Camping", "Nature Walks"],
-          socialMedia: {
-            facebook: "https://facebook.com/mountaintrek",
-            instagram: "https://instagram.com/mountaintrek"
-          }
-        },
-        {
-          id: 3,
-          name: "Heritage Agency",
-          contact: "Anna Lopez",
-          email: "anna@heritagetours.com",
-          phone: "+63 918 765 4321",
-          address: "789 Heritage Street, Vigan City, Philippines",
-          status: "pending",
-          accreditation: "DOT-ACCR-2023-078",
-          joinDate: "2023-10-05",
-          toursCount: 12,
-          rating: 4.7,
-          description: "Immerse in Philippine culture and history with our expert-guided heritage tours.",
-          services: ["Cultural Tours", "Historical Sites", "Museum Tours", "Local Experiences"],
-          socialMedia: {
-            facebook: "https://facebook.com/heritagetours",
-            instagram: "https://instagram.com/heritagetours"
-          }
-        }
-      ];
+      setLoading(true);
+      
+      if (!firebaseDB) {
+        console.error('Firebase not initialized');
+        showValidation({
+          title: 'Error',
+          message: 'Firebase connection failed. Please check your configuration.',
+          type: 'error'
+        });
+        setLoading(false);
+        return;
+      }
 
-      setAgencies(exampleAgencies);
+      // Fetch all agencies and filter in memory to avoid composite index requirement
+      const agenciesRef = collection(firebaseDB, 'agencies');
+      const querySnapshot = await getDocs(agenciesRef);
+      const fetchedAgencies = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        
+        // Filter for active/rejected/suspended agencies (not pending applications)
+        if (data.status === 'active' || data.status === 'rejected' || data.status === 'suspended') {
+          // Transform Firebase data to match the UI format
+          const agency = {
+            id: doc.id,
+            name: data.name || 'Unknown Agency',
+            contact: data.contactPerson?.userID || 'N/A',
+            email: data.contactPerson?.businessEmail || 'N/A',
+            phone: data.contactPerson?.businessContactNumber || 'N/A',
+            address: Array.isArray(data.address) ? data.address.join(', ') : 'N/A',
+            status: data.status || 'active',
+            accreditation: data.registrationNumber || 'N/A',
+            joinDate: data.application?.reviewedOn?.toDate ? data.application.reviewedOn.toDate().toISOString().split('T')[0] : 
+                      (data.createdOn?.toDate ? data.createdOn.toDate().toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+            toursCount: 0, // Can be calculated from tours collection if needed
+            rating: 0, // Can be calculated from reviews if needed
+            description: data.description || 'No description provided',
+            services: [], // Can be added to Firebase schema if needed
+            socialMedia: {
+              facebook: '',
+              instagram: ''
+            },
+            type: data.type || 'N/A',
+            dateEstablished: data.dateEstablished || 'N/A',
+            registrationNumber: data.registrationNumber || 'N/A',
+            createdOnTimestamp: data.createdOn?.toDate ? data.createdOn.toDate().getTime() : 0
+          };
+          
+          fetchedAgencies.push(agency);
+        }
+      });
+
+      // Sort by creation date (newest first)
+      fetchedAgencies.sort((a, b) => b.createdOnTimestamp - a.createdOnTimestamp);
+
+      setAgencies(fetchedAgencies);
       setLoading(false);
+      
+      if (fetchedAgencies.length === 0) {
+        console.log('No active agencies found in Firebase');
+      }
     } catch (error) {
-      console.error('Error fetching agencies:', error);
+      console.error('Error fetching agencies from Firebase:', error);
+      showValidation({
+        title: 'Error',
+        message: `Failed to fetch agencies: ${error.message}`,
+        type: 'error'
+      });
       setLoading(false);
     }
   };
 
   const fetchApplications = async () => {
     try {
-      const exampleApplications = [
-        {
-          id: 1,
-          agencyName: "Sunset Travel Co.",
-          contactPerson: "Roberto Garcia",
-          email: "roberto@sunsettravel.com",
-          phone: "+63 920 123 4567",
-          address: "321 Sunset Boulevard, Puerto Princesa, Palawan",
-          appliedDate: "2024-01-10",
-          status: "pending",
-          accreditationFile: "sunset_travel_dot_cert.pdf",
-          businessPermit: "sunset_business_permit.pdf",
-          taxIdNumber: "123-456-789-000",
-          description: "We offer sunset watching tours and romantic getaways in the beautiful islands of Palawan.",
-          services: ["Sunset Tours", "Romantic Getaways", "Island Hopping"],
-          yearsInBusiness: 3,
-          employeeCount: 12,
-          annualRevenue: "₱5,000,000",
-          documents: [
-            { name: "DOT Accreditation Certificate", file: "sunset_travel_dot_cert.pdf", uploaded: "2024-01-08" },
-            { name: "Business Permit", file: "sunset_business_permit.pdf", uploaded: "2024-01-08" },
-            { name: "Mayor's Permit", file: "sunset_mayors_permit.pdf", uploaded: "2024-01-08" },
-            { name: "BIR Registration", file: "sunset_bir_registration.pdf", uploaded: "2024-01-08" }
-          ]
-        },
-        {
-          id: 2,
-          agencyName: "Wilderness Explorers",
-          contactPerson: "Sofia Mendoza",
-          email: "sofia@wilderness.com",
-          phone: "+63 921 987 6543",
-          address: "654 Adventure Road, Davao City, Philippines",
-          appliedDate: "2024-01-08",
-          status: "under_review",
-          accreditationFile: "wilderness_documents.zip",
-          businessPermit: "wilderness_permit.pdf",
-          taxIdNumber: "987-654-321-000",
-          description: "Specializing in wildlife tours and jungle adventures in Mindanao's pristine forests.",
-          services: ["Wildlife Tours", "Jungle Adventures", "Eco-Tourism"],
-          yearsInBusiness: 5,
-          employeeCount: 8,
-          annualRevenue: "₱3,500,000",
-          documents: [
-            { name: "DOT Accreditation Certificate", file: "wilderness_dot_cert.pdf", uploaded: "2024-01-05" },
-            { name: "Business Permit", file: "wilderness_business_permit.pdf", uploaded: "2024-01-05" },
-            { name: "Environmental Compliance Certificate", file: "wilderness_ecc.pdf", uploaded: "2024-01-05" },
-            { name: "Insurance Certificate", file: "wilderness_insurance.pdf", uploaded: "2024-01-05" }
-          ]
-        },
-      ];
+      setLoading(true);
+      
+      if (!firebaseDB) {
+        console.error('Firebase not initialized');
+        showValidation({
+          title: 'Error',
+          message: 'Firebase connection failed. Please check your configuration.',
+          type: 'error'
+        });
+        setLoading(false);
+        return;
+      }
 
-      setApplications(exampleApplications);
+      // Fetch all agencies and filter in memory to avoid composite index requirement
+      const agenciesRef = collection(firebaseDB, 'agencies');
+      const querySnapshot = await getDocs(agenciesRef);
+      const fetchedApplications = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        
+        // Filter for pending or under_review status
+        if (data.status === 'pending' || data.status === 'under_review') {
+          // Transform Firebase data to match the UI format
+          const application = {
+            id: doc.id,
+            agencyName: data.name || 'Unknown Agency',
+            contactPerson: data.contactPerson?.userID || 'N/A',
+            email: data.contactPerson?.businessEmail || 'N/A',
+            phone: data.contactPerson?.businessContactNumber || 'N/A',
+            address: Array.isArray(data.address) ? data.address.join(', ') : 'N/A',
+            appliedDate: data.createdOn?.toDate ? data.createdOn.toDate().toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            status: data.status || 'pending',
+            registrationNumber: data.registrationNumber || 'N/A',
+            taxIdNumber: data.registrationNumber || 'N/A',
+            description: data.description || 'No description provided',
+            type: data.type || 'N/A',
+            dateEstablished: data.dateEstablished || 'N/A',
+            services: [], // Can be added to Firebase schema if needed
+            yearsInBusiness: data.dateEstablished ? new Date().getFullYear() - new Date(data.dateEstablished).getFullYear() : 0,
+            employeeCount: 0, // Can be added to Firebase schema if needed
+            annualRevenue: 'N/A', // Can be added to Firebase schema if needed
+            documents: (data.documents || []).map((docUrl, index) => ({
+              name: `Document ${index + 1}`,
+              file: docUrl,
+              uploaded: data.createdOn?.toDate ? data.createdOn.toDate().toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+            })),
+            governmentIDs: data.contactPerson?.governmentID || [],
+            applicationMessage: data.application?.message || '',
+            reviewedBy: data.application?.reviewedBy || null,
+            reviewedOn: data.application?.reviewedOn?.toDate ? data.application.reviewedOn.toDate().toISOString() : null,
+            createdOnTimestamp: data.createdOn?.toDate ? data.createdOn.toDate().getTime() : 0
+          };
+          
+          fetchedApplications.push(application);
+        }
+      });
+
+      // Sort by creation date (newest first)
+      fetchedApplications.sort((a, b) => b.createdOnTimestamp - a.createdOnTimestamp);
+
+      setApplications(fetchedApplications);
       setLoading(false);
+      
+      if (fetchedApplications.length === 0) {
+        console.log('No pending applications found in Firebase');
+      }
     } catch (error) {
-      console.error('Error fetching applications:', error);
+      console.error('Error fetching applications from Firebase:', error);
+      showValidation({
+        title: 'Error',
+        message: `Failed to fetch applications: ${error.message}`,
+        type: 'error'
+      });
       setLoading(false);
     }
   };
@@ -184,25 +232,41 @@ const TourAgencyList = () => {
 
   const handleStatusChange = async (agencyId, newStatus) => {
     try {
-      console.log(`Changing status of agency ${agencyId} to ${newStatus}`);
-      // API call to update agency status
-      // await axios.patch(`http://localhost:8080/api/agencies/${agencyId}/status`, { status: newStatus });
+      if (!firebaseDB) {
+        showValidation({
+          title: 'Error',
+          message: 'Firebase connection failed.',
+          type: 'error'
+        });
+        return;
+      }
+
+      const agency = agencies.find(a => a.id === agencyId);
+      
+      // Update the agency document in Firebase
+      const agencyRef = doc(firebaseDB, 'agencies', agencyId);
+      
+      await updateDoc(agencyRef, {
+        status: newStatus,
+        updatedOn: serverTimestamp()
+      });
       
       // Log the status change
-      const agency = agencies.find(a => a.id === agencyId);
       await logAgencyStatusChanged(agencyId, agency?.name || 'Unknown Agency', newStatus);
       
       showValidation({
         title: 'Status Updated',
-        message: `Agency status updated to ${newStatus}`,
+        message: `Agency status updated to ${newStatus} successfully`,
         type: 'success'
       });
-      fetchAgencies(); // Refresh the list
+      
+      // Refresh the list
+      fetchAgencies();
     } catch (error) {
       console.error('Error updating agency status:', error);
       showValidation({
         title: 'Error',
-        message: 'Error updating agency status.',
+        message: `Error updating agency status: ${error.message}`,
         type: 'error'
       });
     }
@@ -210,26 +274,176 @@ const TourAgencyList = () => {
 
   const handleApplicationReview = async (applicationId, action) => {
     try {
-      console.log(`${action} application ${applicationId}`);
-      // API call to review application
-      // await axios.post(`http://localhost:8080/api/agency-applications/${applicationId}/review`, { action });
-      
-      // Log the application review
+      if (!firebaseDB) {
+        showValidation({
+          title: 'Error',
+          message: 'Firebase connection failed.',
+          type: 'error'
+        });
+        return;
+      }
+
       const application = applications.find(a => a.id === applicationId);
-      await logAgencyApplicationReviewed(applicationId, application?.agencyName || 'Unknown Agency', action);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const token = localStorage.getItem('token');
       
-      showValidation({
-        title: 'Application Updated',
-        message: `Application ${action === 'approve' ? 'approved' : 'rejected'}`,
-        type: 'success'
-      });
-      fetchApplications(); // Refresh the list
-      setShowApplicationModal(false); // Close modal after action
+      // Get the agency document to retrieve the contact person's userID
+      const agencyRef = doc(firebaseDB, 'agencies', applicationId);
+      const agencyDoc = await getDoc(agencyRef);
+      
+      if (!agencyDoc.exists()) {
+        showValidation({
+          title: 'Error',
+          message: 'Agency application not found.',
+          type: 'error'
+        });
+        return;
+      }
+      
+      const agencyData = agencyDoc.data();
+      const contactPersonUserId = agencyData.contactPerson?.userID;
+      
+      if (!contactPersonUserId) {
+        showValidation({
+          title: 'Error',
+          message: 'Contact person user ID not found.',
+          type: 'error'
+        });
+        return;
+      }
+
+      // Call backend API to update application status and send email
+      try {
+        const response = await axios.put(
+          `http://localhost:5000/api/agency-auth/user/${contactPersonUserId}/status`,
+          {
+            isApproved: action === 'approve',
+            message: action === 'approve' 
+              ? 'Your application has been approved. Welcome to TaraLets!' 
+              : 'Your application has been rejected. Please contact support for more information.'
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (response.data.success) {
+          // Log the application review
+          await logAgencyApplicationReviewed(applicationId, application?.agencyName || 'Unknown Agency', action);
+          
+          showValidation({
+            title: 'Application Updated',
+            message: action === 'approve' 
+              ? 'Application approved successfully! Email notification has been sent to the agency.' 
+              : 'Application rejected successfully. Email notification has been sent.',
+            type: 'success'
+          });
+          
+          // Refresh the list
+          fetchApplications();
+          setShowApplicationModal(false);
+        }
+      } catch (apiError) {
+        console.error('Backend API error:', apiError);
+        
+        // Fallback to direct Firebase update if API fails
+        const adminId = user.id || user._id || user.uid || user.email || 'admin';
+        const updateData = {
+          status: action === 'approve' ? 'active' : 'rejected',
+          'application.isApproved': action === 'approve',
+          'application.reviewedOn': serverTimestamp(),
+          'application.reviewedBy': adminId,
+          'application.message': action === 'approve' 
+            ? 'Your application has been approved. Welcome to TaraLets!' 
+            : 'Your application has been rejected. Please contact support for more information.',
+          updatedOn: serverTimestamp()
+        };
+        
+        await updateDoc(agencyRef, updateData);
+        
+        // If approved, create agency account and update user
+        if (action === 'approve' && contactPersonUserId) {
+          try {
+            const userRef = doc(firebaseDB, 'users', contactPersonUserId);
+            const userDoc = await getDoc(userRef);
+            
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              
+              // Create a separate agency account document
+              const agencyAccountRef = doc(firebaseDB, 'agencyAccounts', applicationId);
+              await setDoc(agencyAccountRef, {
+                // Agency account information
+                agencyId: applicationId,
+                userId: contactPersonUserId,
+                
+                // User information transferred to agency account
+                ownerName: `${userData.fname || ''} ${userData.lname || ''}`.trim(),
+                ownerEmail: userData.email || agencyData.contactPerson?.businessEmail,
+                ownerPhone: userData.contactNumber || agencyData.contactPerson?.businessContactNumber,
+                profileImage: userData.profileImage || '',
+                
+                // Agency business information
+                agencyName: agencyData.name,
+                registrationNumber: agencyData.registrationNumber,
+                businessEmail: agencyData.contactPerson?.businessEmail,
+                businessPhone: agencyData.contactPerson?.businessContactNumber,
+                description: agencyData.description,
+                type: agencyData.type,
+                dateEstablished: agencyData.dateEstablished,
+                address: agencyData.address,
+                
+                // Account status
+                accountType: 'Agency',
+                status: 'active',
+                isApproved: true,
+                
+                // Timestamps
+                approvedOn: serverTimestamp(),
+                approvedBy: adminId,
+                createdOn: agencyData.createdOn,
+                updatedOn: serverTimestamp()
+              });
+              
+              // Update the original user document
+              // Note: type stays as 'tourGuide', not changed to 'Agency'
+              await updateDoc(userRef, {
+                agencies: arrayUnion(applicationId),
+                hasAgencyAccount: true,
+                agencyAccountId: applicationId,
+                updatedAt: serverTimestamp()
+              });
+              
+              console.log(`Created agency account ${applicationId} for user ${contactPersonUserId}`);
+            }
+          } catch (userError) {
+            console.error('Error creating agency account:', userError);
+          }
+        }
+        
+        // Log the application review
+        await logAgencyApplicationReviewed(applicationId, application?.agencyName || 'Unknown Agency', action);
+        
+        showValidation({
+          title: 'Application Updated',
+          message: action === 'approve' 
+            ? 'Application approved successfully! (Note: Email notification may not have been sent)' 
+            : 'Application rejected successfully. (Note: Email notification may not have been sent)',
+          type: 'success'
+        });
+        
+        // Refresh the list
+        fetchApplications();
+        setShowApplicationModal(false);
+      }
     } catch (error) {
       console.error(`Error ${action}ing application:`, error);
       showValidation({
         title: 'Error',
-        message: `Error ${action}ing application.`,
+        message: `Error ${action}ing application: ${error.message}`,
         type: 'error'
       });
     }
