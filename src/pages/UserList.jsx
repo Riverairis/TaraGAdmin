@@ -31,7 +31,9 @@ const WARNING_REASONS = [
 ];
 
 const UserList = () => {
+  const [userType, setUserType] = useState('travelers'); // 'travelers' or 'tourGuides'
   const [users, setUsers] = useState([]);
+  const [tourGuides, setTourGuides] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [warnings, setWarnings] = useState({});
   const [actionMenu, setActionMenu] = useState(null);
@@ -89,7 +91,9 @@ const UserList = () => {
       setIsLoading(true);
       try {
         const token = localStorage.getItem('accessToken');
-        const response = await axios.get('http://localhost:5000/api/user/filtered-users', {
+        
+        // Fetch travelers
+        const travelersResponse = await axios.get('http://localhost:5000/api/user/filtered-users', {
           headers: {
             'Authorization': token ? `Bearer ${token}` : undefined,
             'Cache-Control': 'no-cache',
@@ -97,10 +101,10 @@ const UserList = () => {
           }
         });
 
-        const rawUsers = Array.isArray(response.data?.users) ? response.data.users : Array.isArray(response.data) ? response.data : [];
+        const rawUsers = Array.isArray(travelersResponse.data?.users) ? travelersResponse.data.users : Array.isArray(travelersResponse.data) ? travelersResponse.data : [];
         const travelersOnly = rawUsers.filter(u => (u.type || '').toLowerCase() === 'traveler');
 
-        const formattedUsers = travelersOnly.map(user => ({
+        const formattedTravelers = travelersOnly.map(user => ({
           id: user.id || user.userID,
           name: `${user.fname || ''} ${user.mname || ''} ${user.lname || ''}`.trim() || 'N/A',
           username: user.username || 'N/A',
@@ -111,17 +115,64 @@ const UserList = () => {
           _secure: { actualEmail: user.email }
         }));
 
-        setUsers(formattedUsers);
+        // Fetch tour guides - try dedicated endpoint first, fallback to filtering from all users
+        let formattedTourGuides = [];
+        try {
+          const tourGuidesResponse = await axios.get('http://localhost:5000/api/tour-guides/all', {
+            headers: {
+              'Authorization': token ? `Bearer ${token}` : undefined,
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
 
-        // initialize warnings
+          const rawTourGuides = Array.isArray(tourGuidesResponse.data?.tourGuides) ? tourGuidesResponse.data.tourGuides : [];
+          
+          formattedTourGuides = rawTourGuides.map(user => ({
+            id: user.id || user.userID,
+            name: `${user.fname || ''} ${user.mname || ''} ${user.lname || ''}`.trim() || 'N/A',
+            username: user.username || 'N/A',
+            email: user.email || 'N/A',
+            status: user.status || 'active',
+            moderationLogID: user.moderationLogID,
+            warningCount: user.warningCount || 0,
+            _secure: { actualEmail: user.email }
+          }));
+        } catch (tourGuideError) {
+          console.log('Tour guide endpoint failed, using fallback filter from all users');
+          // Fallback: filter tour guides from the same response
+          const tourGuidesOnly = rawUsers.filter(u => {
+            const userType = (u.type || '').toLowerCase();
+            return userType === 'tour guide' || userType === 'tourguide';
+          });
+          
+          formattedTourGuides = tourGuidesOnly.map(user => ({
+            id: user.id || user.userID,
+            name: `${user.fname || ''} ${user.mname || ''} ${user.lname || ''}`.trim() || 'N/A',
+            username: user.username || 'N/A',
+            email: user.email || 'N/A',
+            status: user.status || 'active',
+            moderationLogID: user.moderationLogID,
+            warningCount: user.warningCount || 0,
+            _secure: { actualEmail: user.email }
+          }));
+        }
+
+        console.log(`Fetched ${formattedTravelers.length} travelers and ${formattedTourGuides.length} tour guides`);
+        
+        setUsers(formattedTravelers);
+        setTourGuides(formattedTourGuides);
+
+        // initialize warnings for both
         const initialWarnings = {};
-        formattedUsers.forEach(u => {
+        [...formattedTravelers, ...formattedTourGuides].forEach(u => {
           initialWarnings[u.id] = u.warningCount || 0;
         });
         setWarnings(initialWarnings);
       } catch (error) {
-        console.error('Error fetching travelers:', error);
+        console.error('Error fetching users:', error);
         setUsers([]);
+        setTourGuides([]);
       } finally {
         setIsLoading(false);
       }
@@ -150,24 +201,14 @@ const UserList = () => {
         return;
       }
 
-      const response = await axios.get(`http://localhost:5000/api/user/secure-profile/${userId}`, {
+      const response = await axios.get(`http://localhost:5000/api/user/profile/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       const userData = response.data.user;
-      const securedProfile = {
-        likes: userData.likes || [],
-        trips: userData.trips || [],
-        loginHistory: userData.loginHistory || [],
-        emergencyContacts: (userData.emergencyContacts || []).map(contact => ({
-          name: contact.name || 'N/A',
-          relationship: contact.relationship || 'N/A',
-          phone: maskPhone(contact.phone)
-        })),
-        activityLogs: userData.activityLogs || []
-      };
-
-      setUserProfileData(securedProfile);
+      
+      // Set the full user profile data from database
+      setUserProfileData(userData);
     } catch (error) {
       console.error('Error fetching user profile:', error);
       if (error.response?.status === 401) {
@@ -229,7 +270,7 @@ const UserList = () => {
           const token = localStorage.getItem('accessToken');
           const admin = localStorage.getItem('user');
           const adminID = admin ? (JSON.parse(admin)?.id || JSON.parse(admin)?._id) : null;
-          const target = users.find(u => u.id === id);
+          const target = currentUsers.find(u => u.id === id);
           const logID = target?.moderationLogID;
           if (!token || !adminID || !logID) { alert('Missing session or logID.'); return; }
 
@@ -244,7 +285,13 @@ const UserList = () => {
             ...prev,
             [id]: Math.max(0, (prev[id] || 0) - 1)
           }));
-          setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'active', moderationLogID: undefined } : u));
+          
+          // Update the correct array based on userType
+          if (userType === 'travelers') {
+            setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'active', moderationLogID: undefined, warningCount: Math.max(0, (u.warningCount || 0) - 1) } : u));
+          } else {
+            setTourGuides(prev => prev.map(u => u.id === id ? { ...u, status: 'active', moderationLogID: undefined, warningCount: Math.max(0, (u.warningCount || 0) - 1) } : u));
+          }
           alert('Warning removed.');
         } catch (error) {
           console.error('Error removing warning:', error);
@@ -260,7 +307,11 @@ const UserList = () => {
       async (id) => {
         try {
           await handleAddWarning(id);
-          setUsers(prev => prev.map(user => user.id === id ? { ...user, status: 'warned' } : user));
+          if (userType === 'travelers') {
+            setUsers(prev => prev.map(user => user.id === id ? { ...user, status: 'warned' } : user));
+          } else {
+            setTourGuides(prev => prev.map(user => user.id === id ? { ...user, status: 'warned' } : user));
+          }
         } catch (error) {
           console.error('Error suspending user:', error);
           alert('Failed to suspend user');
@@ -283,7 +334,7 @@ const UserList = () => {
   };
 
   const handleActivateUser = async (userId) => {
-    const target = users.find(u => u.id === userId);
+    const target = currentUsers.find(u => u.id === userId);
     const isBan = (target?.status || '').toLowerCase() === 'banned';
     
     showValidation(userId, 
@@ -292,16 +343,25 @@ const UserList = () => {
           const token = localStorage.getItem('accessToken');
           const admin = localStorage.getItem('user');
           const adminID = admin ? (JSON.parse(admin)?.id || JSON.parse(admin)?._id) : null;
-          const targetUser = users.find(u => u.id === id);
+          const targetUser = currentUsers.find(u => u.id === id);
           const logID = targetUser?.moderationLogID;
           if (!token || !adminID || !logID) { alert('Missing session or logID.'); return; }
 
           const url = isBan ? 'http://localhost:5000/api/moderation/unban' : 'http://localhost:5000/api/moderation/unwarn';
           await axios.put(url, { logID, adminID }, { headers: { 'Authorization': `Bearer ${token}` } });
 
-          setUsers(prev => prev.map(user =>
-            user.id === id ? { ...user, status: 'active', moderationLogID: undefined } : user
-          ));
+          setWarnings(prev => ({ ...prev, [id]: 0 }));
+          
+          // Update the correct array based on userType
+          if (userType === 'travelers') {
+            setUsers(prev => prev.map(user =>
+              user.id === id ? { ...user, status: 'active', moderationLogID: undefined, warningCount: 0 } : user
+            ));
+          } else {
+            setTourGuides(prev => prev.map(user =>
+              user.id === id ? { ...user, status: 'active', moderationLogID: undefined, warningCount: 0 } : user
+            ));
+          }
           
           // Log the activation action
           if (isBan) {
@@ -325,12 +385,18 @@ const UserList = () => {
       async (id) => {
         try {
           const token = localStorage.getItem('authToken') || localStorage.getItem('accessToken');
-          const user = users.find(u => u.id === id);
+          const user = currentUsers.find(u => u.id === id);
           
           await axios.delete(`http://localhost:5000/api/user/${id}`, {
             headers: { 'Authorization': token ? `Bearer ${token}` : undefined }
           });
-          setUsers(prev => prev.filter(user => user.id !== id));
+          
+          // Update the correct array based on userType
+          if (userType === 'travelers') {
+            setUsers(prev => prev.filter(user => user.id !== id));
+          } else {
+            setTourGuides(prev => prev.filter(user => user.id !== id));
+          }
           
           // Log the delete action
           await logUserDeleted(id, user?.username || user?.name || 'Unknown User');
@@ -376,8 +442,11 @@ const UserList = () => {
     toggleActionMenu(userId, e);
   };
 
+  // Get current user list based on active tab
+  const currentUsers = userType === 'travelers' ? users : tourGuides;
+
   // Filtered list based on search
-  const filteredUsers = users.filter(user =>
+  const filteredUsers = currentUsers.filter(user =>
     user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -385,7 +454,7 @@ const UserList = () => {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
         </div>
@@ -422,10 +491,16 @@ const UserList = () => {
 
       setWarnings(prev => ({ ...prev, [warnUserId]: (prev[warnUserId] || 0) + 1 }));
       const newLogId = createResp?.data?.logId;
-      setUsers(prev => prev.map(u => u.id === warnUserId ? { ...u, status: 'warned', moderationLogID: newLogId } : u));
+      
+      // Update the correct array based on userType
+      if (userType === 'travelers') {
+        setUsers(prev => prev.map(u => u.id === warnUserId ? { ...u, status: 'warned', moderationLogID: newLogId, warningCount: (u.warningCount || 0) + 1 } : u));
+      } else {
+        setTourGuides(prev => prev.map(u => u.id === warnUserId ? { ...u, status: 'warned', moderationLogID: newLogId, warningCount: (u.warningCount || 0) + 1 } : u));
+      }
       
       // Log the warn action
-      const warnedUser = users.find(u => u.id === warnUserId);
+      const warnedUser = currentUsers.find(u => u.id === warnUserId);
       await logUserWarned(warnUserId, warnedUser?.username || warnedUser?.name || 'Unknown User', reasonValue);
       
       setShowWarnModal(false);
@@ -464,10 +539,16 @@ const UserList = () => {
       }, { headers: { 'Authorization': `Bearer ${token}` } });
 
       const newLogId = createResp?.data?.logId;
-      setUsers(prev => prev.map(user => user.id === banUserId ? { ...user, status: 'banned', moderationLogID: newLogId } : user));
+      
+      // Update the correct array based on userType
+      if (userType === 'travelers') {
+        setUsers(prev => prev.map(user => user.id === banUserId ? { ...user, status: 'banned', moderationLogID: newLogId } : user));
+      } else {
+        setTourGuides(prev => prev.map(user => user.id === banUserId ? { ...user, status: 'banned', moderationLogID: newLogId } : user));
+      }
       
       // Log the ban action
-      const bannedUser = users.find(u => u.id === banUserId);
+      const bannedUser = currentUsers.find(u => u.id === banUserId);
       await logUserBanned(banUserId, bannedUser?.username || bannedUser?.name || 'Unknown User', reasonValue);
       
       setShowBanModal(false);
@@ -484,8 +565,42 @@ const UserList = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Travelers</h1>
-          <p className="text-gray-600 dark:text-gray-400">Manage all travelers</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">User Management</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage travelers and tour guides</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex gap-4">
+            <button
+              onClick={() => {
+                setUserType('travelers');
+                setSearchTerm('');
+              }}
+              className={`pb-3 px-4 font-medium text-sm border-b-2 transition-colors ${
+                userType === 'travelers'
+                  ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <i className="fas fa-users mr-2"></i>
+              Travelers ({users.length})
+            </button>
+            <button
+              onClick={() => {
+                setUserType('tourGuides');
+                setSearchTerm('');
+              }}
+              className={`pb-3 px-4 font-medium text-sm border-b-2 transition-colors ${
+                userType === 'tourGuides'
+                  ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <i className="fas fa-user-tie mr-2"></i>
+              Tour Guides ({tourGuides.length})
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -520,7 +635,6 @@ const UserList = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Full Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Username</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Warnings</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -531,19 +645,6 @@ const UserList = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{user.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{user.username}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{user.email}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none rounded-full ${
-                            (warnings[user.id] || 0) >= 3
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                              : (warnings[user.id] || 0) >= 2
-                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                              : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          }`}>
-                            {warnings[user.id] || 0}
-                          </span>
-                        </div>
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           user.status === 'active'
@@ -582,37 +683,45 @@ const UserList = () => {
                                   View Profile
                                 </button>
 
-                                <button
-                                  onClick={() => { handleAddWarning(user.id); }}
-                                  className="flex items-center w-full px-4 py-2 text-sm text-yellow-700 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                                >
-                                  <i className="fas fa-exclamation-triangle mr-2"></i>
-                                  Add Warning
-                                </button>
+                                {user.status !== 'warned' && user.status !== 'banned' && (
+                                  <button
+                                    onClick={() => { handleAddWarning(user.id); }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-yellow-700 dark:text-yellow-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                                  >
+                                    <i className="fas fa-exclamation-triangle mr-2"></i>
+                                    Add Warning
+                                  </button>
+                                )}
 
-                                <button
-                                  onClick={() => { handleRemoveWarning(user.id); }}
-                                  className="flex items-center w-full px-4 py-2 text-sm text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"
-                                >
-                                  <i className="fas fa-check-circle mr-2"></i>
-                                  Remove Warning
-                                </button>
+                                {(user.status === 'warned' || user.status === 'banned') && (
+                                  <button
+                                    onClick={() => { handleRemoveWarning(user.id); }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                  >
+                                    <i className="fas fa-check-circle mr-2"></i>
+                                    Remove Warning
+                                  </button>
+                                )}
 
-                                <button
-                                  onClick={() => { handleBanUser(user.id); }}
-                                  className="flex items-center w-full px-4 py-2 text-sm text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                >
-                                  <i className="fas fa-ban mr-2"></i>
-                                  Ban User
-                                </button>
+                                {user.status !== 'banned' && (
+                                  <button
+                                    onClick={() => { handleBanUser(user.id); }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  >
+                                    <i className="fas fa-ban mr-2"></i>
+                                    Ban User
+                                  </button>
+                                )}
 
-                                <button
-                                  onClick={() => { handleActivateUser(user.id); }}
-                                  className="flex items-center w-full px-4 py-2 text-sm text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
-                                >
-                                  <i className="fas fa-user-check mr-2"></i>
-                                  Activate / Unban
-                                </button>
+                                {(user.status === 'warned' || user.status === 'banned') && (
+                                  <button
+                                    onClick={() => { handleActivateUser(user.id); }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+                                  >
+                                    <i className="fas fa-user-check mr-2"></i>
+                                    Activate / Unban
+                                  </button>
+                                )}
 
                                 <button
                                   onClick={() => { handleDeleteUser(user.id); }}
@@ -813,196 +922,115 @@ const UserList = () => {
         {/* USER PROFILE Modal */}
         {selectedUser && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-y-auto">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    User Profile: {users.find(u => u.id === selectedUser)?.name}
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    User Profile: {currentUsers.find(u => u.id === selectedUser)?.name}
                   </h2>
                   <button
                     onClick={closeUserProfile}
                     className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
-                    <i className="fas fa-times text-xl"></i>
+                    <i className="fas fa-times text-lg"></i>
                   </button>
-                </div>
-
-                {/* Tabs */}
-                <div className="mt-4 border-b border-gray-200 dark:border-gray-700">
-                  <nav className="-mb-px flex space-x-8">
-                    <button
-                      onClick={() => setActiveTab('profile')}
-                      className={`py-2 px-1 text-sm font-medium ${
-                        activeTab === 'profile'
-                          ? 'border-b-2 border-cyan-500 text-cyan-600 dark:text-cyan-400'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <i className="fas fa-user mr-2"></i>
-                      Profile Details
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('activity')}
-                      className={`py-2 px-1 text-sm font-medium ${
-                        activeTab === 'activity'
-                          ? 'border-b-2 border-cyan-500 text-cyan-600 dark:text-cyan-400'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                      }`}
-                    >
-                      <i className="fas fa-history mr-2"></i>
-                      Activity Logs
-                    </button>
-                  </nav>
                 </div>
               </div>
 
               {isProfileLoading || !userProfileData ? (
-                <div className="p-6">
-                  <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
-                    <span className="ml-3 text-gray-600 dark:text-gray-300">Loading profile...</span>
+                <div className="p-4">
+                  <div className="flex justify-center items-center h-48">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-600"></div>
+                    <span className="ml-3 text-sm text-gray-600 dark:text-gray-300">Loading profile...</span>
                   </div>
                 </div>
               ) : (
-                <>
-                  {activeTab === 'profile' && (
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                          <i className="fas fa-heart text-red-500 mr-2"></i>
+                <div className="p-4">
+                  <div className="space-y-4">
+                    {/* Basic User Info */}
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-sm">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                        <i className="fas fa-user text-cyan-500 mr-2 text-sm"></i>
+                        Basic Information
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Email</p>
+                          <p className="text-sm text-gray-900 dark:text-white font-medium">{userProfileData.email || 'N/A'}</p>
+                        </div>
+                        <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Username</p>
+                          <p className="text-sm text-gray-900 dark:text-white font-medium">{userProfileData.username || 'N/A'}</p>
+                        </div>
+                        <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Gender</p>
+                          <p className="text-sm text-gray-900 dark:text-white font-medium">{userProfileData.gender || 'N/A'}</p>
+                        </div>
+                        <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Contact Number</p>
+                          <p className="text-sm text-gray-900 dark:text-white font-medium">{userProfileData.contactNumber || 'N/A'}</p>
+                        </div>
+                        <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded col-span-full">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Bio</p>
+                          <p className="text-sm text-gray-900 dark:text-white">{userProfileData.bio || 'No bio available'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Interests & Likes */}
+                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-sm">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                          <i className="fas fa-heart text-red-500 mr-2 text-sm"></i>
                           Interests & Likes
                         </h3>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5">
                           {userProfileData.likes && userProfileData.likes.length > 0 ? (
                             userProfileData.likes.map((like, index) => (
-                              <span key={index} className="bg-white dark:bg-gray-600 px-3 py-1 rounded-full text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500">
+                              <span key={index} className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 px-2 py-1 rounded-full text-xs text-gray-700 dark:text-gray-300 border border-red-200 dark:border-red-800">
                                 {like}
                               </span>
                             ))
                           ) : (
-                            <p className="text-gray-500 dark:text-gray-400">No interests listed</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 italic">No interests listed</p>
                           )}
                         </div>
                       </div>
 
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                          <i className="fas fa-route text-blue-500 mr-2"></i>
-                          Recent Trips
+                      {/* Account Status */}
+                      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-sm">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
+                          <i className="fas fa-info-circle text-blue-500 mr-2 text-sm"></i>
+                          Account Status
                         </h3>
-                        <div className="space-y-3">
-                          {userProfileData.trips && userProfileData.trips.length > 0 ? (
-                            userProfileData.trips.map((trip, index) => (
-                              <div key={index} className="bg-white dark:bg-gray-600 p-3 rounded border border-gray-200 dark:border-gray-500">
-                                <div className="font-medium text-gray-900 dark:text-white">{trip.destination}</div>
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                  {trip.date} • {trip.duration}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-gray-500 dark:text-gray-400">No trips recorded</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                          <i className="fas fa-history text-purple-500 mr-2"></i>
-                          Recent Login History
-                        </h3>
-                        <div className="space-y-3">
-                          {userProfileData.loginHistory && userProfileData.loginHistory.length > 0 ? (
-                            userProfileData.loginHistory.map((login, index) => (
-                              <div key={index} className="bg-white dark:bg-gray-600 p-3 rounded border border-gray-200 dark:border-gray-500">
-                                <div className="font-medium text-gray-900 dark:text-white">
-                                  {login.date} at {login.time}
-                                </div>
-                                <div className="text-sm text-gray-600 dark:text-gray-400">{login.device}</div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-gray-500 dark:text-gray-400">No login history available</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                          <i className="fas fa-address-book text-green-500 mr-2"></i>
-                          Emergency Contacts
-                        </h3>
-                        <div className="space-y-3">
-                          {userProfileData.emergencyContacts && userProfileData.emergencyContacts.length > 0 ? (
-                            userProfileData.emergencyContacts.map((contact, index) => (
-                              <div key={index} className="bg-white dark:bg-gray-600 p-3 rounded border border-gray-200 dark:border-gray-500">
-                                <div className="font-medium text-gray-900 dark:text-white">{contact.name}</div>
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                  {contact.relationship} • {contact.phone}
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-gray-500 dark:text-gray-400">No emergency contacts listed</p>
-                          )}
+                        <div className="space-y-2">
+                          <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</p>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              userProfileData.status === 'active'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : userProfileData.status === 'banned'
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                            }`}>
+                              {userProfileData.status || 'active'}
+                            </span>
+                          </div>
+                          <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Account Type</p>
+                            <p className="text-sm text-gray-900 dark:text-white font-medium capitalize">{userProfileData.type || 'N/A'}</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {activeTab === 'activity' && (
-                    <div className="p-6">
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                          <i className="fas fa-clipboard-list text-cyan-500 mr-2"></i>
-                          User Activity Logs
-                        </h3>
-                        <div className="overflow-x-auto">
-                          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
-                            <thead className="bg-gray-100 dark:bg-gray-600">
-                              <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Description</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
-                              </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-gray-700 divide-y divide-gray-200 dark:divide-gray-600">
-                              {userProfileData.activityLogs && userProfileData.activityLogs.length > 0 ? (
-                                userProfileData.activityLogs.map((log, index) => (
-                                  <tr key={index}>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                        log.type === 'Login Attempt'
-                                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                          : log.type === 'Password Change'
-                                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                          : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                                      }`}>{log.type}</span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{log.description}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{log.date}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{log.time}</td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
-                                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">No activity logs found</td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
+                  </div>
+                </div>
               )}
 
-              <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-2xl">
+              <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
                 <button
                   onClick={closeUserProfile}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                   Close Profile
                 </button>

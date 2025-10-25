@@ -15,6 +15,10 @@ const AdminDashboard = ({ onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [totalUsers, setTotalUsers] = useState(0);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [totalTourGuides, setTotalTourGuides] = useState(0);
+  const [isLoadingTourGuides, setIsLoadingTourGuides] = useState(true);
+  const [totalAgencies, setTotalAgencies] = useState(0);
+  const [isLoadingAgencies, setIsLoadingAgencies] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -102,6 +106,76 @@ const AdminDashboard = ({ onLogout }) => {
     fetchTotalUsers();
   }, []);
 
+  // Fetch total tour guides count
+  useEffect(() => {
+    const fetchTotalTourGuides = async () => {
+      try {
+        setIsLoadingTourGuides(true);
+        const accessToken = localStorage.getItem('accessToken');
+        
+        if (!accessToken) {
+          return;
+        }
+
+        const response = await fetch('http://localhost:5000/api/user/filtered-users', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Filter to only count tour guides
+          const users = data.users || [];
+          const tourGuidesOnly = users.filter(user => (user.type || '').toLowerCase() === 'tourguide');
+          setTotalTourGuides(tourGuidesOnly.length);
+        }
+      } catch (error) {
+        console.error('Error fetching total tour guides:', error);
+      } finally {
+        setIsLoadingTourGuides(false);
+      }
+    };
+
+    fetchTotalTourGuides();
+  }, []);
+
+  // Fetch total agencies count from agencies table
+  useEffect(() => {
+    const fetchTotalAgencies = async () => {
+      try {
+        setIsLoadingAgencies(true);
+        const accessToken = localStorage.getItem('accessToken');
+        
+        if (!accessToken) {
+          return;
+        }
+
+        const response = await fetch('http://localhost:5000/api/agency-auth/all-agencies', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Count total agencies from the agencies table
+          setTotalAgencies(data.totalAgencies || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching total agencies:', error);
+      } finally {
+        setIsLoadingAgencies(false);
+      }
+    };
+
+    fetchTotalAgencies();
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-white">
       {/* Sidebar Component */}
@@ -142,7 +216,7 @@ const AdminDashboard = ({ onLogout }) => {
               </div>
 
               {/* Quick Stats Dashboard */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {/* Total Users Card */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6  border-gray-500 dark:border-gray-400">
                   <div className="flex items-center justify-between">
@@ -168,23 +242,28 @@ const AdminDashboard = ({ onLogout }) => {
                   </div>
                 </div>
 
-                {/* Active Tours Card */}
+                {/* Total Tour Guides Card */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6  border-gray-500 dark:border-gray-400">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Active Tours</h3>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white">89</p>
+                      <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Total Tour Guides</h3>
+                      {isLoadingTourGuides ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+                          <p className="text-xl font-bold text-gray-900 dark:text-white">Loading...</p>
+                        </div>
+                      ) : (
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalTourGuides.toLocaleString()}</p>
+                      )}
                     </div>
                     <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900/30 rounded-lg flex items-center justify-center">
                       <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                       </svg>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center text-sm">
-                    <span className="text-green-600 dark:text-green-400 font-medium">+8%</span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-1">from last week</span>
+                    <span className="text-cyan-600 dark:text-cyan-400 font-medium">Real-time data</span>
                   </div>
                 </div>
 
@@ -193,7 +272,14 @@ const AdminDashboard = ({ onLogout }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Partner Agencies</h3>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white">65</p>
+                      {isLoadingAgencies ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+                          <p className="text-xl font-bold text-gray-900 dark:text-white">Loading...</p>
+                        </div>
+                      ) : (
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalAgencies.toLocaleString()}</p>
+                      )}
                     </div>
                     <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900/30 rounded-lg flex items-center justify-center">
                       <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -202,26 +288,7 @@ const AdminDashboard = ({ onLogout }) => {
                     </div>
                   </div>
                   <div className="mt-4 flex items-center text-sm">
-                    <span className="text-green-600 dark:text-green-400 font-medium">58 active</span>
-                  </div>
-                </div>
-
-                {/* Monthly Revenue Card */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-gray-500 dark:border-gray-400">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Monthly Revenue</h3>
-                      <p className="text-3xl font-bold text-gray-900 dark:text-white">₱2.4M</p>
-                    </div>
-                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-900/30 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex items-center text-sm">
-                    <span className="text-green-600 dark:text-green-400 font-medium">+15%</span>
-                    <span className="text-gray-500 dark:text-gray-400 ml-1">from last month</span>
+                    <span className="text-cyan-600 dark:text-cyan-400 font-medium">Real-time data</span>
                   </div>
                 </div>
               </div>

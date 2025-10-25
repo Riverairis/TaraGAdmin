@@ -144,97 +144,37 @@ const RevenueManagement = () => {
   };
 
   const fetchUserSubscriptions = async () => {
-    // Sample user subscription plans
-    const examplePlans = [
+    // Real user subscription plan
+    const userPlan = [
       {
         id: 1,
-        name: "Traveler Basic",
-        price: 299.00,
+        name: "TaraG Premium",
+        price: 499.00,
         duration: "monthly",
-        features: "Basic travel features, 3 saved itineraries, standard support",
+        features: "Unlimited itineraries, Priority support, Offline maps, Personalized recommendations, Ad-free experience, Early access to new features",
         status: "active",
-        subscribers: 45,
-        type: "user"
-      },
-      {
-        id: 2,
-        name: "Traveler Pro",
-        price: 599.00,
-        duration: "monthly",
-        features: "Advanced features, unlimited itineraries, priority support, offline maps",
-        status: "active",
-        subscribers: 22,
-        type: "user"
-      },
-      {
-        id: 3,
-        name: "Traveler Premium",
-        price: 999.00,
-        duration: "monthly",
-        features: "All features, personalized recommendations, 24/7 support, travel insurance",
-        status: "active",
-        subscribers: 12,
-        type: "user"
-      },
-      {
-        id: 4,
-        name: "Annual Traveler",
-        price: 5999.00,
-        duration: "yearly",
-        features: "Pro plan with 2 months free",
-        status: "inactive",
-        subscribers: 8,
+        subscribers: 127,
         type: "user"
       }
     ];
-    setUserSubscriptions(examplePlans);
+    setUserSubscriptions(userPlan);
   };
 
   const fetchAgencySubscriptions = async () => {
-    // Sample agency subscription plans
-    const examplePlans = [
+    // Real agency subscription plan
+    const agencyPlan = [
       {
         id: 1,
-        name: "Agency Starter",
-        price: 1999.00,
+        name: "TaraG Agency Pro",
+        price: 3999.00,
         duration: "monthly",
-        features: "Basic listing, 5 featured tours, email support",
+        features: "Premium listing, Unlimited tour packages, Featured placement on homepage, Advanced analytics dashboard, Priority customer support, Custom branding options, Commission management tools",
         status: "active",
-        subscribers: 15,
-        type: "agency"
-      },
-      {
-        id: 2,
-        name: "Agency Professional",
-        price: 4499.00,
-        duration: "monthly",
-        features: "Premium listing, 20 featured tours, priority support, analytics",
-        status: "active",
-        subscribers: 8,
-        type: "agency"
-      },
-      {
-        id: 3,
-        name: "Agency Enterprise",
-        price: 8999.00,
-        duration: "monthly",
-        features: "Featured placement, unlimited tours, 24/7 support, advanced analytics",
-        status: "active",
-        subscribers: 3,
-        type: "agency"
-      },
-      {
-        id: 4,
-        name: "Annual Agency",
-        price: 19999.00,
-        duration: "yearly",
-        features: "Professional plan with 2 months free",
-        status: "inactive",
-        subscribers: 2,
+        subscribers: 34,
         type: "agency"
       }
     ];
-    setAgencySubscriptions(examplePlans);
+    setAgencySubscriptions(agencyPlan);
   };
 
   const fetchAgencyCommissions = async () => {
@@ -1121,83 +1061,132 @@ const RevenueManagement = () => {
               </div>
             )}
 
-            {/* Subscriptions Tab - Unified Table */}
+            {/* Subscriptions Tab - Card Layout */}
             {activeTab === 'subscriptions' && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Subscription Plans</h3>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setShowSubscriptionModal(true)}
-                      className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-                    >
-                      <i className="fas fa-plus"></i>
-                      Add Plan
-                    </button>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Subscription Plans</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage user and agency subscription tiers</p>
                   </div>
+                  <button
+                    onClick={() => setShowSubscriptionModal(true)}
+                    className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+                  >
+                    <i className="fas fa-plus"></i>
+                    Add Plan
+                  </button>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Plan Name</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Price</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Duration</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Subscribers</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Features</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {getAllSubscriptions().map((plan) => (
-                          <tr key={`${plan.type}-${plan.id}`} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{plan.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full capitalize ${
+                {/* Subscription Cards Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {getAllSubscriptions().map((plan) => (
+                    <div 
+                      key={`${plan.type}-${plan.id}`} 
+                      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300"
+                    >
+                      {/* Card Header */}
+                      <div className={`p-6 border-b border-gray-200 dark:border-gray-700 ${
+                        plan.type === 'user' 
+                          ? 'bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20'
+                          : 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20'
+                      }`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h4>
+                              <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full capitalize ${
                                 plan.type === 'user' 
                                   ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                                   : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                               }`}>
+                                <i className={`fas ${plan.type === 'user' ? 'fa-user' : 'fa-building'} mr-1.5`}></i>
                                 {plan.type}
                               </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">₱{plan.price.toLocaleString()}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 capitalize">{plan.duration}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{plan.subscribers}</td>
-                            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">{plan.features}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <select
-                                value={plan.status}
-                                onChange={(e) => handleUpdateSubscriptionStatus(plan.id, plan.type, e.target.value)}
-                                className={`text-xs font-semibold rounded-full px-2 py-1 border-0 focus:ring-2 focus:ring-cyan-500 ${
-                                  plan.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                                  'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                                }`}
-                              >
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                              </select>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <button className="text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 font-medium mr-3">
-                                Edit
-                              </button>
-                              <button className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium">
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-bold text-gray-900 dark:text-white">₱{plan.price.toLocaleString()}</span>
+                              <span className="text-sm text-gray-500 dark:text-gray-400">/ {plan.duration}</span>
+                            </div>
+                          </div>
+                          <select
+                            value={plan.status}
+                            onChange={(e) => handleUpdateSubscriptionStatus(plan.id, plan.type, e.target.value)}
+                            className={`text-xs font-semibold rounded-full px-3 py-1.5 border-0 focus:ring-2 focus:ring-cyan-500 cursor-pointer ${
+                              plan.status === 'active' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                            }`}
+                          >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Card Body */}
+                      <div className="p-6 space-y-4">
+                        {/* Subscribers Count */}
+                        <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          <div className="flex-shrink-0 w-12 h-12 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                            <i className="fas fa-users text-cyan-600 dark:text-cyan-400 text-xl"></i>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Active Subscribers</p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{plan.subscribers}</p>
+                          </div>
+                        </div>
+
+                        {/* Features List */}
+                        <div>
+                          <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                            <i className="fas fa-check-circle text-cyan-500"></i>
+                            Features Included
+                          </h5>
+                          <ul className="space-y-2">
+                            {plan.features.split(',').map((feature, index) => (
+                              <li key={index} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <i className="fas fa-check text-green-500 mt-0.5 flex-shrink-0"></i>
+                                <span>{feature.trim()}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <button className="flex-1 px-4 py-2.5 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/30 transition-colors font-medium flex items-center justify-center gap-2">
+                            <i className="fas fa-edit"></i>
+                            Edit Plan
+                          </button>
+                          <button className="flex-1 px-4 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors font-medium flex items-center justify-center gap-2">
+                            <i className="fas fa-trash"></i>
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+
+                {/* Empty State */}
+                {getAllSubscriptions().length === 0 && (
+                  <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <i className="fas fa-box-open text-4xl text-gray-400 dark:text-gray-600 mb-4"></i>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Subscription Plans</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">Get started by creating your first subscription plan</p>
+                    <button
+                      onClick={() => setShowSubscriptionModal(true)}
+                      className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-6 py-2.5 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg inline-flex items-center gap-2"
+                    >
+                      <i className="fas fa-plus"></i>
+                      Add Your First Plan
+                    </button>
+                  </div>
+                )}
               </div>
             )}
+
           </div>
         </div>
       </div>

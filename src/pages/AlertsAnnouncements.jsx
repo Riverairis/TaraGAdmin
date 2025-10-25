@@ -79,7 +79,7 @@ const IntegratedAlertsSystem = () => {
         const start = a.startOn ? new Date(a.startOn) : null;
         const end = a.endOn ? new Date(a.endOn) : null;
         const now = new Date();
-        const status = start && end && start <= now && end >= now ? 'Active' : 'Sent';
+        const status = start && end && start <= now && end >= now ? 'Active' : '';
         return {
           id: a.id || a._id || Date.now(),
           title: a.title || 'Untitled',
@@ -377,7 +377,7 @@ const IntegratedAlertsSystem = () => {
   const getStatusIcon = (status) => {
     switch(status) {
       case 'Active': return 'fas fa-circle';
-      case 'Sent': return 'fas fa-check-circle';
+      case 'Scheduled': return 'fas fa-clock';
       default: return 'fas fa-clock';
     }
   };
@@ -753,14 +753,15 @@ const IntegratedAlertsSystem = () => {
                                   <div className="flex items-center justify-between mb-2">
                                     <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{alert.title}</h3>
                                     <div className="flex items-center gap-2">
-                                      <span className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center shadow-sm ${
-                                        alert.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 border border-green-200 dark:border-green-800' :
-                                        alert.status === 'Sent' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 border border-blue-200 dark:border-blue-800' :
-                                        'bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-200 border border-gray-200 dark:border-gray-800'
-                                      }`}>
-                                        <i className={`${getStatusIcon(alert.status)} mr-1 text-xs`}></i>
-                                        {alert.status}
-                                      </span>
+                                      {alert.status && (
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center shadow-sm ${
+                                          alert.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 border border-green-200 dark:border-green-800' :
+                                          'bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-200 border border-gray-200 dark:border-gray-800'
+                                        }`}>
+                                          <i className={`${getStatusIcon(alert.status)} mr-1 text-xs`}></i>
+                                          {alert.status}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                   <p className="text-gray-700 dark:text-gray-300 mt-2 mb-4 leading-relaxed">{alert.message}</p>
@@ -907,63 +908,7 @@ const IntegratedAlertsSystem = () => {
                       )}
                     </div>
 
-                    {/* Alert History Section */}
-                    <div>
-                      <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Alert History</h2>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                          <thead className="bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">User</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Type</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Location</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {alertHistory.map(alert => (
-                              <tr key={alert.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">#{alert.id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{alert.userName}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{alert.type}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{alert.location}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                                  {new Date(alert.timestamp).toLocaleString()}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    alert.status === 'resolved' 
-                                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                  }`}>
-                                    {alert.status}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                  <button 
-                                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3"
-                                    onClick={() => handleViewDetails(alert)}
-                                  >
-                                    View
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {alertHistory.length === 0 && (
-                        <div className="text-center py-8 bg-gray-50 dark:bg-gray-700 rounded-lg mt-4">
-                          <span className="fas fa-history text-gray-400 text-3xl mb-3"></span>
-                          <p className="text-gray-500 dark:text-gray-400">No alert history found</p>
-                        </div>
-                      )}
-                    </div>
+                    
                   </>
                 )}
               </div>
