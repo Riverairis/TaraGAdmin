@@ -92,8 +92,8 @@ const UserList = () => {
       try {
         const token = localStorage.getItem('accessToken');
         
-        // Fetch travelers
-        const travelersResponse = await axios.get('http://localhost:5000/api/user/filtered-users', {
+        // Fetch all users first
+        const allUsersResponse = await axios.get('http://localhost:5000/api/user/filtered-users', {
           headers: {
             'Authorization': token ? `Bearer ${token}` : undefined,
             'Cache-Control': 'no-cache',
@@ -101,10 +101,18 @@ const UserList = () => {
           }
         });
 
-        const rawUsers = Array.isArray(travelersResponse.data?.users) ? travelersResponse.data.users : Array.isArray(travelersResponse.data) ? travelersResponse.data : [];
-        const travelersOnly = rawUsers.filter(u => (u.type || '').toLowerCase() === 'traveler');
+        const allUsers = Array.isArray(allUsersResponse.data?.users) ? allUsersResponse.data.users : [];
+        
+        // Debug: Log all unique type values in the database
+        const uniqueTypes = [...new Set(allUsers.map(u => u.type))];
+        console.log('🔍 All unique user types in database:', uniqueTypes);
+        console.log('📊 Total users fetched:', allUsers.length);
 
-        const formattedTravelers = travelersOnly.map(user => ({
+        // Filter travelers - only users with type exactly 'traveler' (case-sensitive)
+        const rawTravelers = allUsers.filter(u => u.type === 'traveler');
+        console.log(`✅ Travelers found: ${rawTravelers.length}`);
+
+        const formattedTravelers = rawTravelers.map(user => ({
           id: user.id || user.userID,
           name: `${user.fname || ''} ${user.mname || ''} ${user.lname || ''}`.trim() || 'N/A',
           username: user.username || 'N/A',
@@ -115,50 +123,22 @@ const UserList = () => {
           _secure: { actualEmail: user.email }
         }));
 
-        // Fetch tour guides - try dedicated endpoint first, fallback to filtering from all users
-        let formattedTourGuides = [];
-        try {
-          const tourGuidesResponse = await axios.get('http://localhost:5000/api/tour-guides/all', {
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : undefined,
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
-          });
+        // Filter tour guides - only users with type exactly 'tourGuide' (case-sensitive, capital G)
+        const rawTourGuides = allUsers.filter(u => u.type === 'tourGuide');
+        console.log(`✅ Tour guides found: ${rawTourGuides.length}`);
+        
+        const formattedTourGuides = rawTourGuides.map(user => ({
+          id: user.id || user.userID,
+          name: `${user.fname || ''} ${user.mname || ''} ${user.lname || ''}`.trim() || 'N/A',
+          username: user.username || 'N/A',
+          email: user.email || 'N/A',
+          status: user.status || 'active',
+          moderationLogID: user.moderationLogID,
+          warningCount: user.warningCount || 0,
+          _secure: { actualEmail: user.email }
+        }));
 
-          const rawTourGuides = Array.isArray(tourGuidesResponse.data?.tourGuides) ? tourGuidesResponse.data.tourGuides : [];
-          
-          formattedTourGuides = rawTourGuides.map(user => ({
-            id: user.id || user.userID,
-            name: `${user.fname || ''} ${user.mname || ''} ${user.lname || ''}`.trim() || 'N/A',
-            username: user.username || 'N/A',
-            email: user.email || 'N/A',
-            status: user.status || 'active',
-            moderationLogID: user.moderationLogID,
-            warningCount: user.warningCount || 0,
-            _secure: { actualEmail: user.email }
-          }));
-        } catch (tourGuideError) {
-          console.log('Tour guide endpoint failed, using fallback filter from all users');
-          // Fallback: filter tour guides from the same response
-          const tourGuidesOnly = rawUsers.filter(u => {
-            const userType = (u.type || '').toLowerCase();
-            return userType === 'tour guide' || userType === 'tourguide';
-          });
-          
-          formattedTourGuides = tourGuidesOnly.map(user => ({
-            id: user.id || user.userID,
-            name: `${user.fname || ''} ${user.mname || ''} ${user.lname || ''}`.trim() || 'N/A',
-            username: user.username || 'N/A',
-            email: user.email || 'N/A',
-            status: user.status || 'active',
-            moderationLogID: user.moderationLogID,
-            warningCount: user.warningCount || 0,
-            _secure: { actualEmail: user.email }
-          }));
-        }
-
-        console.log(`Fetched ${formattedTravelers.length} travelers and ${formattedTourGuides.length} tour guides`);
+        console.log(`📋 Final counts - Travelers: ${formattedTravelers.length}, Tour Guides: ${formattedTourGuides.length}`);
         
         setUsers(formattedTravelers);
         setTourGuides(formattedTourGuides);
